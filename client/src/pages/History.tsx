@@ -62,7 +62,7 @@ import {
   Wrench
 } from "lucide-react";
 
-import toolImage from "@assets/image_1767634910612.png";
+import toolImage from "@assets/image_1763626594069.png";
 
 // Number of videos per page for pagination
 const VIDEOS_PER_PAGE = 24;

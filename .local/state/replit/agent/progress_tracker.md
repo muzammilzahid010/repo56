@@ -5,3 +5,6 @@
 [x] 5. Character selection made optional in video generation
 [x] 6. Fixed workflow configuration with webview output type
 [x] 7. Fixed Empire plan 2000 video daily limit - now Empire users have truly unlimited videos
+[x] 8. Reinstalled dependencies and restarted workflow successfully
+[x] 9. Fixed missing image file in History.tsx
+[x] 10. Configured to use user's external PostgreSQL database from secrets
