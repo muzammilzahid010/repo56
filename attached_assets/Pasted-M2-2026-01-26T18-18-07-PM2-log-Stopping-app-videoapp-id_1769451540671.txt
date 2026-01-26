@@ -1,0 +1,57 @@
+M2        | 2026-01-26T18:18:07: PM2 log: Stopping app:videoapp id:0
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=failed to kill - retrying in 100ms
+PM2        | 2026-01-26T18:18:08: PM2 log: App [videoapp:0] exited with code [0] via signal [SIGINT]
+PM2        | 2026-01-26T18:18:08: PM2 log: pid=297916 msg=process killed
+PM2        | 2026-01-26T18:18:08: PM2 log: App [videoapp:0] starting in -fork mode-
+PM2        | 2026-01-26T18:18:08: PM2 log: App [videoapp:0] online
+
+/root/videoapp/logs/out.log last 20 lines:
+0|videoapp | 2026-01-26 18:18:07 +00:00: }
+0|videoapp | 2026-01-26 18:18:07 +00:00: [VEO3] No video URL found in response
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 98] Step 2 success: Video operation started
+0|videoapp | 2026-01-26 18:18:07 +00:00: 6:18:07 PM [express] POST /api/check-video-status 200 in 195ms :: {"status":"MEDIA_GENERATION_STATUS…
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 71] Poll 18: Status = MEDIA_GENERATION_STATUS_ACTIVE
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 98] Step 3: Polling for video completion...
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 90] Poll 6: Status = MEDIA_GENERATION_STATUS_ACTIVE
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 70] Video complete with fifeUrl
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 97] Step 2 success: Video operation started
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 81] Poll 6: Status = MEDIA_GENERATION_STATUS_ACTIVE
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 97] Step 3: Polling for video completion...
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Storage] ✅ Video fea1f797-12d3-4b02-b0df-4dbbc296257f completed - Daily count incremented for user 091cd3e4-8327-49c9-8d77-ba8dabb0ad22
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 70] Complete! Video URL: https://storage.googleapis.com/ai-sandbox-videofx/video/d41c89da-6053-49c0-8057-333edef41bb7?GoogleAccessId=labs-ai-sandbox-videoserver-prod@system.gserviceaccount.com&Expires=1769473086&Signature=C6vgtinEaERCQ5pNb%2FrlGIvLwA7hecoCXk%2BKDdpwxWCKMyQbYAiBDzMpJm0zLJZWLiWzlBA1nFQZSCSSE1fRJEuaUNypZExWyx7PZh%2FXW3GPUB1RquTMAAkwz7bteBiW2yHFSIRiuGIqWSJzJZrxOQTkHc2G7tWNUdioRPFWfmSA5B3Oj3jo5H%2BLUL5edTZ2nMiEfFS2%2BdEtDxs9jPfZskDXQGWAm7AwLbOjcRlHT1Pnl%2FBjEHWYgYO0faN5b4rPSpfunX63gXU7R18M1m0Al11tiNLiPbOdL4n9R2FQZ6PPy1XBGaozn2ooOUC9jK26VyFqQuqUFQa8%2Fj99OM69Uw%3D%3D
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 95] Processing prompt: 96:Cinematic Historical Epic Style: ultra-realisti...
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 80] Poll 7: Status = MEDIA_GENERATION_STATUS_ACTIVE
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 75] Poll 5: Status = MEDIA_GENERATION_STATUS_ACTIVE
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Bulk Video 62] Video complete with fifeUrl
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Status Check Debug] Received tokenId: 6a85ed94-7874-47dd-9864-7496e65b8442 (type: string)
+0|videoapp | 2026-01-26 18:18:07 +00:00: [Status Check] Using specific token: Token 216 (ID: 6a85ed94-7874-47dd-9864-7496e65b8442)
+0|videoapp | 2026-01-26 18:18:08 +00:00: [Storage] ✅ Video cb2d4ed3-423f-44ef-a413-89f125f9c961 completed - Daily count incremented for user e4a1ad23-015a-467f-8ce7-c6ae35ef9248
+
+/root/videoapp/logs/error.log last 20 lines:
+0|videoapp | 2026-01-26 18:15:22 +00:00: [Bulk Video 96] Video generation failed
+0|videoapp | 2026-01-26 18:15:37 +00:00: [Bulk Video 8] Video generation failed
+0|videoapp | 2026-01-26 18:15:42 +00:00: [Bulk Video 2] Video generation failed
+0|videoapp | 2026-01-26 18:15:43 +00:00: [Bulk Video 5] Video generation failed
+0|videoapp | 2026-01-26 18:15:58 +00:00: [Bulk Video 3] Video generation failed
+0|videoapp | 2026-01-26 18:16:02 +00:00: [Bulk Video 1] Video generation failed
+0|videoapp | 2026-01-26 18:16:18 +00:00: [Bulk Video 4] Video generation failed
+0|videoapp | 2026-01-26 18:16:33 +00:00: [Bulk Video 19] Video generation failed
+0|videoapp | 2026-01-26 18:17:45 +00:00: Error: ENOENT: no such file or directory, stat '/root/videoapp/dist/public/index.html'
+0|videoapp | 2026-01-26 18:18:09 +00:00: Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'bcryptjs' imported from /root/videoapp/dist/index.js
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at packageResolve (node:internal/modules/esm/resolve:873:9)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+0|videoapp | 2026-01-26 18:18:09 +00:00:     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+0|videoapp | 2026-01-26 18:18:09 +00:00:   code: 'ERR_MODULE_NOT_FOUND'
+0|videoapp | 2026-01-26 18:18:09 +00:00: }
+
+
