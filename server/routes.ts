@@ -14058,8 +14058,11 @@ Stats:
     }
   });
 
-  // Full UGC flow endpoint - orchestrates all steps
+  // Full UGC flow endpoint - orchestrates all steps with auto-retry (up to 10 attempts)
   app.post("/api/ugc/full-flow", requireAuth, async (req: Request, res: Response) => {
+    const MAX_UGC_RETRIES = 10;
+    const failedTokenIds: Set<string> = new Set();
+    
     try {
       const userId = (req as any).userId;
       const { imageBase64, userPrompt, videoPrompt, aspectRatio } = req.body;
@@ -14075,238 +14078,290 @@ Stats:
         return res.status(400).json({ error: "Google Labs cookie not configured" });
       }
 
-      // Get an active API token from the token pool
-      const tokenIndex = Math.floor(Math.random() * 1000);
-      const apiToken = await storage.getTokenByIndex(tokenIndex);
+      // Helper function to get a token that hasn't failed
+      const getValidToken = async () => {
+        for (let i = 0; i < 50; i++) {
+          const tokenIndex = Math.floor(Math.random() * 1000);
+          const token = await storage.getTokenByIndex(tokenIndex);
+          if (token && !failedTokenIds.has(token.id)) {
+            return token;
+          }
+        }
+        // If all random attempts failed, get any active token not in failed list
+        const tokenIndex = Math.floor(Math.random() * 1000);
+        return await storage.getTokenByIndex(tokenIndex);
+      };
 
-      if (!apiToken) {
-        return res.status(400).json({ error: "No active API tokens available" });
-      }
+      let lastError: any = null;
+      
+      // Retry loop for the entire UGC flow
+      for (let attempt = 1; attempt <= MAX_UGC_RETRIES; attempt++) {
+        try {
+          const apiToken = await getValidToken();
 
-      const bearerToken = apiToken.token;
-      console.log(`[UGC Full Flow] Using token: ${apiToken.label}`);
+          if (!apiToken) {
+            console.error(`[UGC Full Flow] Attempt ${attempt}/${MAX_UGC_RETRIES}: No active API tokens available`);
+            lastError = { error: "No active API tokens available" };
+            continue;
+          }
 
-      const workflowId = uuidv4();
-      const sessionId = `;${Date.now()}`;
-      const imageData = imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+          const bearerToken = apiToken.token;
+          console.log(`[UGC Full Flow] Attempt ${attempt}/${MAX_UGC_RETRIES}: Using token: ${apiToken.label}`);
 
-      // Step 1: Caption the image
-      console.log("[UGC Full Flow] Step 1: Captioning image...");
-      const captionResponse = await fetch("https://labs.google/fx/api/trpc/backbone.captionImage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Cookie": googleLabsCookie
-        },
-        body: JSON.stringify({
-          json: {
-            clientContext: { sessionId, workflowId },
-            captionInput: {
-              candidatesCount: 1,
-              mediaInput: {
-                mediaCategory: "MEDIA_CATEGORY_SUBJECT",
-                rawBytes: imageData
+          const workflowId = uuidv4();
+          const sessionId = `;${Date.now()}`;
+          const imageData = imageBase64.startsWith("data:") ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+
+          // Step 1: Caption the image
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Step 1: Captioning image...`);
+          const captionResponse = await fetch("https://labs.google/fx/api/trpc/backbone.captionImage", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Cookie": googleLabsCookie
+            },
+            body: JSON.stringify({
+              json: {
+                clientContext: { sessionId, workflowId },
+                captionInput: {
+                  candidatesCount: 1,
+                  mediaInput: {
+                    mediaCategory: "MEDIA_CATEGORY_SUBJECT",
+                    rawBytes: imageData
+                  }
+                }
               }
-            }
+            })
+          });
+
+          if (!captionResponse.ok) {
+            const errorText = await captionResponse.text();
+            console.error(`[UGC Full Flow] Attempt ${attempt}: Caption failed:`, errorText);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "Failed to caption image", details: errorText };
+            continue;
           }
-        })
-      });
 
-      if (!captionResponse.ok) {
-        const errorText = await captionResponse.text();
-        console.error("[UGC Full Flow] Caption failed:", errorText);
-        return res.status(captionResponse.status).json({ error: "Failed to caption image", details: errorText });
-      }
+          const captionData = await captionResponse.json();
+          const caption = captionData?.result?.data?.json?.result?.candidates?.[0]?.output || "";
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Caption:`, caption.substring(0, 100) + "...");
 
-      const captionData = await captionResponse.json();
-      const caption = captionData?.result?.data?.json?.result?.candidates?.[0]?.output || "";
-      console.log("[UGC Full Flow] Caption:", caption.substring(0, 100) + "...");
+          // Step 2: Upload original image via aisandbox (using bearer token)
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Step 2: Uploading original image via aisandbox...`);
+          const uploadResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${bearerToken}`
+            },
+            body: JSON.stringify({
+              imageInput: {
+                rawImageBytes: imageBase64,
+                mimeType: "image/jpeg",
+                isUserUploaded: true,
+                aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
+              },
+              clientContext: {
+                sessionId,
+                tool: "ASSET_MANAGER"
+              }
+            })
+          });
 
-      // Step 2: Upload original image via aisandbox (using bearer token)
-      console.log("[UGC Full Flow] Step 2: Uploading original image via aisandbox...");
-      const uploadResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${bearerToken}`
-        },
-        body: JSON.stringify({
-          imageInput: {
-            rawImageBytes: imageBase64,
-            mimeType: "image/jpeg",
-            isUserUploaded: true,
-            aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
-          },
-          clientContext: {
-            sessionId,
-            tool: "ASSET_MANAGER"
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error(`[UGC Full Flow] Attempt ${attempt}: Upload failed:`, errorText);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "Failed to upload image", details: errorText };
+            continue;
           }
-        })
-      });
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("[UGC Full Flow] Upload failed:", errorText);
-        return res.status(uploadResponse.status).json({ error: "Failed to upload image", details: errorText });
-      }
-
-      const uploadData = await uploadResponse.json();
-      console.log("[UGC Full Flow] Upload response:", JSON.stringify(uploadData).substring(0, 500));
-      // Response has nested structure: { mediaGenerationId: { mediaGenerationId: "actual_id" } }
-      const uploadMediaGenerationId = uploadData?.mediaGenerationId?.mediaGenerationId || uploadData?.mediaGenerationId;
-      console.log("[UGC Full Flow] Upload ID:", uploadMediaGenerationId);
-      
-      if (!uploadMediaGenerationId || typeof uploadMediaGenerationId !== 'string') {
-        console.error("[UGC Full Flow] No valid mediaGenerationId in upload response");
-        return res.status(500).json({ error: "No mediaGenerationId returned from upload" });
-      }
-
-      // Step 3: Generate UGC image
-      console.log("[UGC Full Flow] Step 3: Generating UGC image...");
-      const defaultUserPrompt = userPrompt || "Make a UGC image of this item with a person, 19 to 25 year old, showing the product clearly, natural lighting, authentic influencer style";
-      const seed = Math.floor(Math.random() * 1000000);
-
-      const ugcImageResponse = await fetch("https://aisandbox-pa.googleapis.com/v1/whisk:runImageRecipe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=UTF-8",
-          "Authorization": `Bearer ${bearerToken}`
-        },
-        body: JSON.stringify({
-          clientContext: { workflowId, tool: "BACKBONE", sessionId },
-          seed,
-          imageModelSettings: {
-            imageModel: "GEM_PIX",
-            aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
-          },
-          userInstruction: defaultUserPrompt,
-          recipeMediaInputs: [{
-            caption,
-            mediaInput: {
-              mediaCategory: "MEDIA_CATEGORY_SUBJECT",
-              mediaGenerationId: uploadMediaGenerationId
-            }
-          }]
-        })
-      });
-
-      if (!ugcImageResponse.ok) {
-        const errorText = await ugcImageResponse.text();
-        console.error("[UGC Full Flow] UGC image failed:", errorText);
-        return res.status(ugcImageResponse.status).json({ error: "Failed to generate UGC image", details: errorText });
-      }
-
-      const ugcImageData = await ugcImageResponse.json();
-      const generatedImage = ugcImageData?.imagePanels?.[0]?.generatedImages?.[0];
-      
-      if (!generatedImage) {
-        return res.status(500).json({ error: "No UGC image generated" });
-      }
-
-      // Note: generatedImage.mediaGenerationId may be nested object or string
-      const step3MediaId = generatedImage.mediaGenerationId?.mediaGenerationId || generatedImage.mediaGenerationId;
-      console.log("[UGC Full Flow] UGC image generated, mediaGenerationId:", step3MediaId);
-
-      // Step 4: Upload generated image to aisandbox (creates accessible mediaGenerationId)
-      console.log("[UGC Full Flow] Step 4: Uploading generated image to aisandbox...");
-      const uploadUserImageResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${bearerToken}`
-        },
-        body: JSON.stringify({
-          imageInput: {
-            rawImageBytes: generatedImage.encodedImage,
-            mimeType: "image/jpeg",
-            isUserUploaded: true,
-            aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
-          },
-          clientContext: {
-            sessionId,
-            tool: "ASSET_MANAGER"
+          const uploadData = await uploadResponse.json();
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Upload response:`, JSON.stringify(uploadData).substring(0, 500));
+          const uploadMediaGenerationId = uploadData?.mediaGenerationId?.mediaGenerationId || uploadData?.mediaGenerationId;
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Upload ID:`, uploadMediaGenerationId);
+          
+          if (!uploadMediaGenerationId || typeof uploadMediaGenerationId !== 'string') {
+            console.error(`[UGC Full Flow] Attempt ${attempt}: No valid mediaGenerationId in upload response`);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "No mediaGenerationId returned from upload" };
+            continue;
           }
-        })
-      });
 
-      if (!uploadUserImageResponse.ok) {
-        const errorText = await uploadUserImageResponse.text();
-        console.error("[UGC Full Flow] Upload user image failed:", errorText);
-        return res.status(uploadUserImageResponse.status).json({ error: "Failed to upload generated image", details: errorText });
-      }
+          // Step 3: Generate UGC image
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Step 3: Generating UGC image...`);
+          const defaultUserPrompt = userPrompt || "Make a UGC image of this item with a person, 19 to 25 year old, showing the product clearly, natural lighting, authentic influencer style";
+          const seed = Math.floor(Math.random() * 1000000);
 
-      const uploadUserImageData = await uploadUserImageResponse.json();
-      console.log("[UGC Full Flow] Upload user image response:", JSON.stringify(uploadUserImageData).substring(0, 500));
-      // Response has nested structure: { mediaGenerationId: { mediaGenerationId: "actual_id" } }
-      const newMediaGenerationId = uploadUserImageData?.mediaGenerationId?.mediaGenerationId || uploadUserImageData?.mediaGenerationId;
-      console.log("[UGC Full Flow] New mediaGenerationId:", newMediaGenerationId);
-      
-      if (!newMediaGenerationId || typeof newMediaGenerationId !== 'string') {
-        console.error("[UGC Full Flow] No valid newMediaGenerationId in upload response");
-        return res.status(500).json({ error: "No valid mediaGenerationId from generated image upload" });
-      }
+          const ugcImageResponse = await fetch("https://aisandbox-pa.googleapis.com/v1/whisk:runImageRecipe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=UTF-8",
+              "Authorization": `Bearer ${bearerToken}`
+            },
+            body: JSON.stringify({
+              clientContext: { workflowId, tool: "BACKBONE", sessionId },
+              seed,
+              imageModelSettings: {
+                imageModel: "GEM_PIX",
+                aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
+              },
+              userInstruction: defaultUserPrompt,
+              recipeMediaInputs: [{
+                caption,
+                mediaInput: {
+                  mediaCategory: "MEDIA_CATEGORY_SUBJECT",
+                  mediaGenerationId: uploadMediaGenerationId
+                }
+              }]
+            })
+          });
 
-      // Step 5: Generate video
-      console.log("[UGC Full Flow] Step 5: Generating video...");
-      const defaultVideoPrompt = videoPrompt || `Make an engaging intro UGC video of this product. ${caption}`;
+          if (!ugcImageResponse.ok) {
+            const errorText = await ugcImageResponse.text();
+            console.error(`[UGC Full Flow] Attempt ${attempt}: UGC image failed:`, errorText);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "Failed to generate UGC image", details: errorText };
+            continue;
+          }
 
-      const videoResponse = await fetch("https://aisandbox-pa.googleapis.com/v1/whisk:generateVideo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=UTF-8",
-          "Authorization": `Bearer ${bearerToken}`
-        },
-        body: JSON.stringify({
-          clientContext: { sessionId, tool: "BACKBONE", workflowId },
-          promptImageInput: {
+          const ugcImageData = await ugcImageResponse.json();
+          const generatedImage = ugcImageData?.imagePanels?.[0]?.generatedImages?.[0];
+          
+          if (!generatedImage) {
+            console.error(`[UGC Full Flow] Attempt ${attempt}: No UGC image generated`);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "No UGC image generated" };
+            continue;
+          }
+
+          const step3MediaId = generatedImage.mediaGenerationId?.mediaGenerationId || generatedImage.mediaGenerationId;
+          console.log(`[UGC Full Flow] Attempt ${attempt}: UGC image generated, mediaGenerationId:`, step3MediaId);
+
+          // Step 4: Upload generated image to aisandbox
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Step 4: Uploading generated image to aisandbox...`);
+          const uploadUserImageResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${bearerToken}`
+            },
+            body: JSON.stringify({
+              imageInput: {
+                rawImageBytes: generatedImage.encodedImage,
+                mimeType: "image/jpeg",
+                isUserUploaded: true,
+                aspectRatio: aspectRatio || "IMAGE_ASPECT_RATIO_LANDSCAPE"
+              },
+              clientContext: {
+                sessionId,
+                tool: "ASSET_MANAGER"
+              }
+            })
+          });
+
+          if (!uploadUserImageResponse.ok) {
+            const errorText = await uploadUserImageResponse.text();
+            console.error(`[UGC Full Flow] Attempt ${attempt}: Upload user image failed:`, errorText);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "Failed to upload generated image", details: errorText };
+            continue;
+          }
+
+          const uploadUserImageData = await uploadUserImageResponse.json();
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Upload user image response:`, JSON.stringify(uploadUserImageData).substring(0, 500));
+          const newMediaGenerationId = uploadUserImageData?.mediaGenerationId?.mediaGenerationId || uploadUserImageData?.mediaGenerationId;
+          console.log(`[UGC Full Flow] Attempt ${attempt}: New mediaGenerationId:`, newMediaGenerationId);
+          
+          if (!newMediaGenerationId || typeof newMediaGenerationId !== 'string') {
+            console.error(`[UGC Full Flow] Attempt ${attempt}: No valid newMediaGenerationId in upload response`);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "No valid mediaGenerationId from generated image upload" };
+            continue;
+          }
+
+          // Step 5: Generate video
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Step 5: Generating video...`);
+          const defaultVideoPrompt = videoPrompt || `Make an engaging intro UGC video of this product. ${caption}`;
+
+          const videoResponse = await fetch("https://aisandbox-pa.googleapis.com/v1/whisk:generateVideo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=UTF-8",
+              "Authorization": `Bearer ${bearerToken}`
+            },
+            body: JSON.stringify({
+              clientContext: { sessionId, tool: "BACKBONE", workflowId },
+              promptImageInput: {
+                prompt: defaultVideoPrompt,
+                rawBytes: generatedImage.encodedImage,
+                mediaGenerationId: newMediaGenerationId || step3MediaId
+              },
+              modelNameType: "VEO_3_1_I2V_12STEP",
+              modelKey: "",
+              userInstructions: defaultVideoPrompt,
+              loopVideo: false
+            })
+          });
+
+          if (!videoResponse.ok) {
+            const errorText = await videoResponse.text();
+            console.error(`[UGC Full Flow] Attempt ${attempt}: Video generation failed:`, errorText);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "Failed to start video generation", details: errorText };
+            continue;
+          }
+
+          const videoData = await videoResponse.json();
+          const operationName = videoData?.operation?.operation?.name;
+          const sceneId = videoData?.operation?.sceneId || "";
+
+          if (!operationName) {
+            console.error(`[UGC Full Flow] Attempt ${attempt}: No operation name returned for video`);
+            failedTokenIds.add(apiToken.id);
+            lastError = { error: "No operation name returned for video" };
+            continue;
+          }
+
+          console.log(`[UGC Full Flow] Attempt ${attempt}: Video operation started:`, operationName);
+
+          // Save to history
+          const historyEntry = await storage.addVideoHistory({
+            userId,
             prompt: defaultVideoPrompt,
-            rawBytes: generatedImage.encodedImage,
-            mediaGenerationId: newMediaGenerationId || step3MediaId
-          },
-          modelNameType: "VEO_3_1_I2V_12STEP",
-          modelKey: "",
-          userInstructions: defaultVideoPrompt,
-          loopVideo: false
-        })
-      });
+            status: "processing",
+            aspectRatio: aspectRatio === "IMAGE_ASPECT_RATIO_PORTRAIT" ? "9:16" : aspectRatio === "IMAGE_ASPECT_RATIO_SQUARE" ? "1:1" : "16:9",
+            referenceImageUrl: generatedImage.encodedImage ? `data:image/png;base64,${generatedImage.encodedImage}` : null,
+            operationName,
+            sceneId
+          });
 
-      if (!videoResponse.ok) {
-        const errorText = await videoResponse.text();
-        console.error("[UGC Full Flow] Video generation failed:", errorText);
-        return res.status(videoResponse.status).json({ error: "Failed to start video generation", details: errorText });
+          // SUCCESS - return the response
+          return res.json({ 
+            success: true,
+            caption,
+            ugcImage: generatedImage.encodedImage,
+            ugcImageMediaId: step3MediaId,
+            operationName,
+            sceneId,
+            historyId: historyEntry.id,
+            tokenId: apiToken.id,
+            status: "processing",
+            attempts: attempt
+          });
+
+        } catch (attemptError) {
+          console.error(`[UGC Full Flow] Attempt ${attempt}/${MAX_UGC_RETRIES} error:`, attemptError);
+          lastError = { error: "UGC generation failed", message: attemptError instanceof Error ? attemptError.message : "Unknown error" };
+        }
       }
 
-      const videoData = await videoResponse.json();
-      const operationName = videoData?.operation?.operation?.name;
-      const sceneId = videoData?.operation?.sceneId || "";
-
-      if (!operationName) {
-        return res.status(500).json({ error: "No operation name returned for video" });
-      }
-
-      console.log("[UGC Full Flow] Video operation started:", operationName);
-
-      // Save to history
-      const historyEntry = await storage.addVideoHistory({
-        userId,
-        prompt: defaultVideoPrompt,
-        status: "processing",
-        aspectRatio: aspectRatio === "IMAGE_ASPECT_RATIO_PORTRAIT" ? "9:16" : aspectRatio === "IMAGE_ASPECT_RATIO_SQUARE" ? "1:1" : "16:9",
-        referenceImageUrl: generatedImage.encodedImage ? `data:image/png;base64,${generatedImage.encodedImage}` : null,
-        operationName,
-        sceneId
-      });
-
-      res.json({ 
-        success: true,
-        caption,
-        ugcImage: generatedImage.encodedImage,
-        ugcImageMediaId: step3MediaId,
-        operationName,
-        sceneId,
-        historyId: historyEntry.id,
-        tokenId: apiToken.id,
-        status: "processing"
+      // All retries exhausted
+      console.error(`[UGC Full Flow] All ${MAX_UGC_RETRIES} attempts failed`);
+      return res.status(500).json({ 
+        error: "UGC generation failed after all retries", 
+        details: lastError,
+        attempts: MAX_UGC_RETRIES
       });
 
     } catch (error) {
