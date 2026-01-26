@@ -8155,7 +8155,12 @@ Only respond with the JSON array, no additional text.`;
         console.log(`[Batch Stream Phase 1] Generating media IDs for ${prompts.length} prompts with ${refImages.length} reference images each...`);
         sendEvent('phase', { phase: 'mediaIds', message: `Preparing ${refImages.length} reference images...` });
         
-        const mediaIdPromises = prompts.map(async (_, promptIndex) => {
+        // Process with concurrency control (25 at a time like Phase 2)
+        const PHASE1_CONCURRENCY = 25;
+        const results: (MediaIdData | null)[] = [];
+        const activePhase1Promises: Promise<void>[] = [];
+        
+        const processMediaId = async (promptIndex: number) => {
           // CRITICAL: Use SAME token for ALL media IDs of this prompt
           const token = activeTokens[(promptIndex + tokenOffset) % activeTokens.length];
           console.log(`[Phase 1] Prompt ${promptIndex}: Using Token ${token.label} (ID: ${token.id}) for ALL ${refImages.length} media ID uploads`);
@@ -8196,12 +8201,25 @@ Only respond with the JSON array, no additional text.`;
           
           if (mediaIds.length > 0) {
             console.log(`[Phase 1] Prompt ${promptIndex}: Created ${mediaIds.length}/${refImages.length} media IDs with Token ${token.label}`);
-            return { mediaIds, token, promptIndex };
+            results[promptIndex] = { mediaIds, token, promptIndex };
+          } else {
+            results[promptIndex] = null;
           }
-          return null;
-        });
-
-        const results = await Promise.all(mediaIdPromises);
+        };
+        
+        for (let i = 0; i < prompts.length; i++) {
+          const phase1Promise = processMediaId(i).then(() => {
+            const idx = activePhase1Promises.indexOf(phase1Promise);
+            if (idx > -1) activePhase1Promises.splice(idx, 1);
+          });
+          activePhase1Promises.push(phase1Promise);
+          
+          if (activePhase1Promises.length >= PHASE1_CONCURRENCY) {
+            await Promise.race(activePhase1Promises);
+          }
+        }
+        
+        await Promise.all(activePhase1Promises);
         mediaIdDataList = results.filter((r): r is MediaIdData => r !== null);
       }
 
