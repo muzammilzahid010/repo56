@@ -8135,9 +8135,9 @@ Only respond with the JSON array, no additional text.`;
       }
 
       // PHASE 1: Generate media IDs if reference images provided
-      // Updated to support multiple reference images (up to 5)
-      type MediaIdData = { mediaIds: string[]; token: typeof activeTokens[0]; promptIndex: number };
-      let mediaIdDataList: MediaIdData[] = [];
+      // OPTIMIZED: Upload reference images ONCE and reuse for ALL prompts (up to 25 per token)
+      type SharedMediaData = { mediaIds: string[]; token: typeof activeTokens[0] };
+      let sharedMediaDataList: SharedMediaData[] = [];
 
       // Determine which reference images to use (new array format or legacy single image)
       const refImages = referenceImagesData && referenceImagesData.length > 0 
@@ -8150,20 +8150,18 @@ Only respond with the JSON array, no additional text.`;
       if (refImages.length > 0) {
         console.log(`[Batch Stream] Reference image received! Base64 length: ${refImages[0].base64.length}, MimeType: ${refImages[0].mimeType}`);
       }
-      // All models support reference images via whisk:runImageRecipe
+      
+      // OPTIMIZED: Upload reference images ONCE per token, reuse media IDs for 25 prompts each
+      const PROMPTS_PER_TOKEN = 25;
       if (refImages.length > 0) {
-        console.log(`[Batch Stream Phase 1] Generating media IDs for ${prompts.length} prompts with ${refImages.length} reference images each...`);
-        sendEvent('phase', { phase: 'mediaIds', message: `Preparing ${refImages.length} reference images...` });
+        const tokensNeeded = Math.ceil(prompts.length / PROMPTS_PER_TOKEN);
+        console.log(`[Batch Stream Phase 1] OPTIMIZED: Uploading reference images ${tokensNeeded} time(s) for ${prompts.length} prompts`);
+        sendEvent('phase', { phase: 'mediaIds', message: `Uploading ${refImages.length} reference image(s) (optimized: ${tokensNeeded}x instead of ${prompts.length}x)...` });
         
-        // Process with concurrency control (25 at a time like Phase 2)
-        const PHASE1_CONCURRENCY = 25;
-        const results: (MediaIdData | null)[] = [];
-        const activePhase1Promises: Promise<void>[] = [];
-        
-        const processMediaId = async (promptIndex: number) => {
-          // CRITICAL: Use SAME token for ALL media IDs of this prompt
-          const token = activeTokens[(promptIndex + tokenOffset) % activeTokens.length];
-          console.log(`[Phase 1] Prompt ${promptIndex}: Using Token ${token.label} (ID: ${token.id}) for ALL ${refImages.length} media ID uploads`);
+        // Upload reference images once per token group
+        for (let tokenGroupIndex = 0; tokenGroupIndex < tokensNeeded; tokenGroupIndex++) {
+          const token = activeTokens[(tokenGroupIndex + tokenOffset) % activeTokens.length];
+          console.log(`[Phase 1 Optimized] Token group ${tokenGroupIndex + 1}/${tokensNeeded}: Using Token ${token.label} for ${Math.min(PROMPTS_PER_TOKEN, prompts.length - tokenGroupIndex * PROMPTS_PER_TOKEN)} prompts`);
           
           const mediaIds: string[] = [];
           
@@ -8189,38 +8187,23 @@ Only respond with the JSON array, no additional text.`;
               if (uploadResponse.ok) {
                 const uploadData = await uploadResponse.json();
                 const mediaId = uploadData.mediaGenerationId?.mediaGenerationId || uploadData.mediaGenerationId;
-                console.log(`[Phase 1] Prompt ${promptIndex}, Image ${imgIndex + 1}: Media ID created with Token ${token.label}`);
+                console.log(`[Phase 1 Optimized] Token group ${tokenGroupIndex + 1}, Image ${imgIndex + 1}: Media ID created`);
                 mediaIds.push(mediaId);
               } else {
-                console.log(`[Phase 1] Prompt ${promptIndex}, Image ${imgIndex + 1}: Upload failed with Token ${token.label}`);
+                console.log(`[Phase 1 Optimized] Token group ${tokenGroupIndex + 1}, Image ${imgIndex + 1}: Upload failed`);
               }
             } catch (error) {
-              console.log(`[Phase 1] Prompt ${promptIndex}, Image ${imgIndex + 1}: Upload error:`, error);
+              console.log(`[Phase 1 Optimized] Token group ${tokenGroupIndex + 1}, Image ${imgIndex + 1}: Upload error:`, error);
             }
           }
           
           if (mediaIds.length > 0) {
-            console.log(`[Phase 1] Prompt ${promptIndex}: Created ${mediaIds.length}/${refImages.length} media IDs with Token ${token.label}`);
-            results[promptIndex] = { mediaIds, token, promptIndex };
-          } else {
-            results[promptIndex] = null;
-          }
-        };
-        
-        for (let i = 0; i < prompts.length; i++) {
-          const phase1Promise = processMediaId(i).then(() => {
-            const idx = activePhase1Promises.indexOf(phase1Promise);
-            if (idx > -1) activePhase1Promises.splice(idx, 1);
-          });
-          activePhase1Promises.push(phase1Promise);
-          
-          if (activePhase1Promises.length >= PHASE1_CONCURRENCY) {
-            await Promise.race(activePhase1Promises);
+            console.log(`[Phase 1 Optimized] Token group ${tokenGroupIndex + 1}: Created ${mediaIds.length}/${refImages.length} media IDs - Will reuse for ${Math.min(PROMPTS_PER_TOKEN, prompts.length - tokenGroupIndex * PROMPTS_PER_TOKEN)} prompts`);
+            sharedMediaDataList.push({ mediaIds, token });
           }
         }
         
-        await Promise.all(activePhase1Promises);
-        mediaIdDataList = results.filter((r): r is MediaIdData => r !== null);
+        console.log(`[Phase 1 Optimized] COMPLETE: ${sharedMediaDataList.length} token groups ready, each will serve ${PROMPTS_PER_TOKEN} prompts`);
       }
 
       sendEvent('phase', { phase: 'generation', message: 'Generating images...' });
@@ -8230,15 +8213,17 @@ Only respond with the JSON array, no additional text.`;
       let failedCount = 0;
 
       const generateAndStream = async (prompt: string, index: number) => {
-        const mediaIdData = mediaIdDataList.find(m => m.promptIndex === index);
-        const token = mediaIdData?.token || activeTokens[(index + tokenOffset) % activeTokens.length];
-        const referenceMediaIds = mediaIdData?.mediaIds || [];
+        // OPTIMIZED: Determine which token group this prompt belongs to (every 25 prompts share same token/mediaIds)
+        const tokenGroupIndex = Math.floor(index / PROMPTS_PER_TOKEN);
+        const sharedMediaData = sharedMediaDataList[tokenGroupIndex];
+        const token = sharedMediaData?.token || activeTokens[(index + tokenOffset) % activeTokens.length];
+        const referenceMediaIds = sharedMediaData?.mediaIds || [];
         
         // Debug: Log token being used for image generation
-        if (mediaIdData?.token) {
-          console.log(`[Phase 2] Prompt ${index}: Using SAME Token ${token.label} (ID: ${token.id}) from Phase 1 - Has ${referenceMediaIds.length} mediaIds`);
+        if (sharedMediaData) {
+          console.log(`[Phase 2 Optimized] Prompt ${index}: Token group ${tokenGroupIndex + 1}, Token ${token.label} - REUSING ${referenceMediaIds.length} mediaIds`);
         } else {
-          console.log(`[Phase 2] Prompt ${index}: Using FALLBACK Token ${token.label} (ID: ${token.id}) - No mediaIdData found`);
+          console.log(`[Phase 2] Prompt ${index}: Using FALLBACK Token ${token.label} (ID: ${token.id}) - No shared media data`);
         }
 
         try {
