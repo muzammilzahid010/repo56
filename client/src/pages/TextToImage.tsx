@@ -25,7 +25,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import { Image as ImageIcon, Sparkles, Download, X, Upload, Monitor, Smartphone, Square, Layers, RefreshCw, AlertCircle, Loader2, Archive, Trash2, CheckCircle, ExternalLink } from "lucide-react";
+import { Image as ImageIcon, Sparkles, Download, X, Upload, Monitor, Smartphone, Square, Layers, RefreshCw, AlertCircle, Loader2, Archive, Trash2, CheckCircle } from "lucide-react";
 import LinearProgress from '@mui/material/LinearProgress';
 import CardContent from '@mui/material/CardContent';
 import Tabs from '@mui/material/Tabs';
@@ -1822,20 +1822,6 @@ export default function TextToImage() {
                                 >
                                   Download
                                 </Button>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => window.open(result.imageUrl, '_blank')}
-                                  sx={{
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: 2,
-                                    '&:hover': { 
-                                      borderColor: '#374151',
-                                      bgcolor: alpha('#374151', 0.05)
-                                    }
-                                  }}
-                                >
-                                  <ExternalLink size={14} />
-                                </IconButton>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleRegenerateImage(index)}
