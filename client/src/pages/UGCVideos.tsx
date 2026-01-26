@@ -948,7 +948,7 @@ export default function UGCVideos() {
                         Download All Videos (Merged)
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        Merge all videos in sequence (first video full, others trimmed 1s from start)
+                        Merge all videos in sequence (first video full, others trimmed 0.5s from start)
                       </p>
                       <Button 
                         className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"

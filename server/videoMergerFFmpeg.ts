@@ -164,9 +164,9 @@ export async function mergeUGCVideosWithTrim(videoUrls: string[]): Promise<{ fil
         const cmd = `ffmpeg -i "${inputFile}" -c:v libx264 -c:a aac -y "${processedFile}"`;
         await execAsync(cmd, { maxBuffer: 1024 * 1024 * 50 });
       } else {
-        // Subsequent videos - trim 1 second from start
-        console.log(`[UGC Merger] Processing video ${i + 1} (trimming 1s from start)...`);
-        const cmd = `ffmpeg -i "${inputFile}" -ss 1 -c:v libx264 -c:a aac -y "${processedFile}"`;
+        // Subsequent videos - trim 0.5 second from start
+        console.log(`[UGC Merger] Processing video ${i + 1} (trimming 0.5s from start)...`);
+        const cmd = `ffmpeg -i "${inputFile}" -ss 0.5 -c:v libx264 -c:a aac -y "${processedFile}"`;
         await execAsync(cmd, { maxBuffer: 1024 * 1024 * 50 });
       }
       
