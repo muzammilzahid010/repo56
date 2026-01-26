@@ -130,6 +130,8 @@ interface UserData {
   bulkMaxBatch: number | null;
   bulkDelaySeconds: number | null;
   bulkMaxPrompts: number | null;
+  warningActive: boolean;
+  warningMessage: string | null;
   videoStats: {
     completed: number;
     failed: number;

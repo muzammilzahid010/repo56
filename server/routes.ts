@@ -1839,6 +1839,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planExpiry: user.planExpiry,
         dailyVideoCount: user.dailyVideoCount,
         isPlanExpired: isPlanExpired(user),
+        warningActive: user.warningActive,
+        warningMessage: user.warningMessage,
       } 
     });
   });
@@ -1931,6 +1933,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bulkMaxBatch: user.bulkMaxBatch,
           bulkDelaySeconds: user.bulkDelaySeconds,
           bulkMaxPrompts: user.bulkMaxPrompts,
+          warningActive: user.warningActive,
+          warningMessage: user.warningMessage,
           videoStats,
         };
       });

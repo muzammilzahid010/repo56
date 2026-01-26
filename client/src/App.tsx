@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { WarningBanner } from "@/components/WarningBanner";
 import LoadingScreen from "@/components/LoadingScreen";
 import ThemeProvider from "@/theme/ThemeProvider";
 import Home from "@/pages/Home";
@@ -84,6 +85,7 @@ function App() {
         <TooltipProvider>
           <LoadingScreen isLoading={isLoading} />
           <div style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}>
+            <WarningBanner />
             <Toaster />
             <Router />
             <WhatsAppButton />
