@@ -302,32 +302,54 @@ export default function UGCVideos() {
     }
   }, [extendedVideoStatus]);
 
-  // Extend Scene polling
-  const startExtendPolling = useCallback((operationName: string, sceneId: string, tokenId: string) => {
+  // Extend Scene polling with auto-retry
+  const startExtendPolling = useCallback((operationName: string, sceneId: string, tokenId: string, retryCount: number = 0) => {
     setIsExtendPolling(true);
     
-    const poll = async () => {
+    const poll = async (currentOpName: string, currentSceneId: string, currentTokenId: string, currentRetryCount: number) => {
       try {
-        const result = await checkStatusMutation.mutateAsync({ operationName, sceneId, tokenId });
+        const defaultPrompt = `extend this ugc video for this product ${ugcResult?.caption || ""}`;
+        const prompt = extendPrompt.trim() || defaultPrompt;
+        
+        const result = await checkStatusMutation.mutateAsync({ 
+          operationName: currentOpName, 
+          sceneId: currentSceneId, 
+          tokenId: currentTokenId,
+          retryCount: currentRetryCount,
+          ugcImage: videoStatus?.videoUrl || undefined,
+          prompt
+        });
         setExtendedVideoStatus(result);
         
         if (result.isComplete) {
           setIsExtendPolling(false);
           toast({ title: "Extended video ready!", description: "Your extended video has been generated successfully" });
+        } else if (result.isRetrying && result.newOperationName && result.newTokenId) {
+          toast({ title: "Auto-retrying extend...", description: `Retry attempt ${result.retryCount}/5 with different token` });
+          setTimeout(() => poll(
+            result.newOperationName!, 
+            result.newSceneId || "", 
+            result.newTokenId!,
+            result.retryCount || 0
+          ), 3000);
         } else if (result.isFailed) {
           setIsExtendPolling(false);
-          toast({ title: "Extended video failed", description: "Please try again", variant: "destructive" });
+          if (result.autoRetryExhausted) {
+            toast({ title: "Extended video failed", description: "Max retries exhausted. Please try again.", variant: "destructive" });
+          } else {
+            toast({ title: "Extended video failed", description: "Please try again", variant: "destructive" });
+          }
         } else {
-          setTimeout(() => poll(), 5000);
+          setTimeout(() => poll(currentOpName, currentSceneId, currentTokenId, currentRetryCount), 5000);
         }
       } catch (error) {
         console.error("Extend polling error:", error);
-        setTimeout(() => poll(), 5000);
+        setTimeout(() => poll(currentOpName, currentSceneId, currentTokenId, currentRetryCount), 5000);
       }
     };
 
-    poll();
-  }, [checkStatusMutation, toast]);
+    poll(operationName, sceneId, tokenId, retryCount);
+  }, [checkStatusMutation, toast, ugcResult, extendPrompt, videoStatus]);
 
   // Extend Scene mutation
   const extendSceneMutation = useMutation({
@@ -376,32 +398,54 @@ export default function UGCVideos() {
     }
   }, [extended2VideoStatus]);
 
-  // Level 2 extend polling
-  const startExtend2Polling = useCallback((operationName: string, sceneId: string, tokenId: string) => {
+  // Level 2 extend polling with auto-retry
+  const startExtend2Polling = useCallback((operationName: string, sceneId: string, tokenId: string, retryCount: number = 0) => {
     setIsExtend2Polling(true);
     
-    const poll = async () => {
+    const poll = async (currentOpName: string, currentSceneId: string, currentTokenId: string, currentRetryCount: number) => {
       try {
-        const result = await checkStatusMutation.mutateAsync({ operationName, sceneId, tokenId });
+        const defaultPrompt = `extend this ugc video for this product ${ugcResult?.caption || ""}`;
+        const prompt = extend2Prompt.trim() || defaultPrompt;
+        
+        const result = await checkStatusMutation.mutateAsync({ 
+          operationName: currentOpName, 
+          sceneId: currentSceneId, 
+          tokenId: currentTokenId,
+          retryCount: currentRetryCount,
+          ugcImage: extendedVideoStatus?.videoUrl || undefined,
+          prompt
+        });
         setExtended2VideoStatus(result);
         
         if (result.isComplete) {
           setIsExtend2Polling(false);
           toast({ title: "Extended video ready!", description: "Your second extended video has been generated" });
+        } else if (result.isRetrying && result.newOperationName && result.newTokenId) {
+          toast({ title: "Auto-retrying extend...", description: `Retry attempt ${result.retryCount}/5 with different token` });
+          setTimeout(() => poll(
+            result.newOperationName!, 
+            result.newSceneId || "", 
+            result.newTokenId!,
+            result.retryCount || 0
+          ), 3000);
         } else if (result.isFailed) {
           setIsExtend2Polling(false);
-          toast({ title: "Extended video failed", description: "Please try again", variant: "destructive" });
+          if (result.autoRetryExhausted) {
+            toast({ title: "Extended video failed", description: "Max retries exhausted. Please try again.", variant: "destructive" });
+          } else {
+            toast({ title: "Extended video failed", description: "Please try again", variant: "destructive" });
+          }
         } else {
-          setTimeout(() => poll(), 5000);
+          setTimeout(() => poll(currentOpName, currentSceneId, currentTokenId, currentRetryCount), 5000);
         }
       } catch (error) {
         console.error("Extend2 polling error:", error);
-        setTimeout(() => poll(), 5000);
+        setTimeout(() => poll(currentOpName, currentSceneId, currentTokenId, currentRetryCount), 5000);
       }
     };
 
-    poll();
-  }, [checkStatusMutation, toast]);
+    poll(operationName, sceneId, tokenId, retryCount);
+  }, [checkStatusMutation, toast, ugcResult, extend2Prompt, extendedVideoStatus]);
 
   // Level 2 extend mutation
   const extendScene2Mutation = useMutation({
