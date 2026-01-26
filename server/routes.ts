@@ -2403,6 +2403,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send warning to user (admin only)
+  app.post("/api/admin/send-warning/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const warningMessage = "You are violating our policies. We will closely monitor your account and next time if we detect this again, we will delete your account.";
+      
+      await storage.updateUserWarning(userId, true, warningMessage);
+      
+      console.log(`[Admin] Warning sent to user ${user.username} (${userId})`);
+      
+      res.json({ 
+        success: true,
+        message: `Warning sent to ${user.username}`
+      });
+    } catch (error) {
+      console.error("Error in POST /api/admin/send-warning:", error);
+      res.status(500).json({ error: "Failed to send warning" });
+    }
+  });
+
+  // Clear warning from user (admin only)
+  app.post("/api/admin/clear-warning/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateUserWarning(userId, false, null);
+      
+      console.log(`[Admin] Warning cleared for user ${user.username} (${userId})`);
+      
+      res.json({ 
+        success: true,
+        message: `Warning cleared for ${user.username}`
+      });
+    } catch (error) {
+      console.error("Error in POST /api/admin/clear-warning:", error);
+      res.status(500).json({ error: "Failed to clear warning" });
+    }
+  });
+
   // Remove user plan endpoint (admin only)
   app.delete("/api/users/:id/plan", requireAdmin, async (req, res) => {
     try {

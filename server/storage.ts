@@ -467,6 +467,21 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateUserWarning(userId: string, warningActive: boolean, warningMessage: string | null): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({
+          warningActive: warningActive,
+          warningMessage: warningMessage,
+        })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error("Error updating user warning:", error);
+      throw error;
+    }
+  }
+
   async removePlan(userId: string): Promise<User | undefined> {
     try {
       const [updatedUser] = await db
