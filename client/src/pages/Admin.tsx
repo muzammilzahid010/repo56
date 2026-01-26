@@ -1970,17 +1970,6 @@ export default function Admin() {
                     <p className="text-xs text-gray-600">Free Active</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200">
-                  <CardContent className="p-4 text-center">
-                    <Video className="w-6 h-6 mx-auto mb-2 text-cyan-600" />
-                    <p className="text-2xl font-bold text-cyan-700">
-                      {actualActiveUsers.length > 0 
-                        ? Math.round(actualActiveUsers.reduce((sum, u) => sum + (u.videosGeneratedToday || 0), 0) / actualActiveUsers.length * 10) / 10
-                        : 0}
-                    </p>
-                    <p className="text-xs text-cyan-600">Avg Videos (Active)</p>
-                  </CardContent>
-                </Card>
               </div>
             );
           })()
