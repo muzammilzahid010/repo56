@@ -796,6 +796,48 @@ export default function Admin() {
     },
   });
 
+  const sendWarningMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("POST", `/api/admin/send-warning/${userId}`);
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Warning Sent",
+        description: data.message || "Warning has been sent to the user.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to send warning",
+        description: error.message || "An error occurred",
+      });
+    },
+  });
+
+  const clearWarningMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("POST", `/api/admin/clear-warning/${userId}`);
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Warning Cleared",
+        description: data.message || "Warning has been cleared.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to clear warning",
+        description: error.message || "An error occurred",
+      });
+    },
+  });
+
   const addTokenMutation = useMutation({
     mutationFn: async (data: AddApiTokenFormData) => {
       const response = await apiRequest("POST", "/api/tokens", data);
@@ -2697,6 +2739,32 @@ export default function Admin() {
                               <RotateCcw className="h-3 w-3" />
                               Reset Queue
                             </Button>
+
+                            {user.warningActive ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => clearWarningMutation.mutate(user.id)}
+                                disabled={clearWarningMutation.isPending}
+                                data-testid={`button-clear-warning-${user.id}`}
+                                className="gap-1 border-green-500 text-green-700 hover:bg-green-50"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Clear Warning
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => sendWarningMutation.mutate(user.id)}
+                                disabled={sendWarningMutation.isPending}
+                                data-testid={`button-send-warning-${user.id}`}
+                                className="gap-1 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                Send Warning
+                              </Button>
+                            )}
 
                             {user.planType !== "free" && (
                               <AlertDialog>
