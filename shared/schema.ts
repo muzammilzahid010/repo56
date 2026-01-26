@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, integer, index, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -779,3 +779,104 @@ export const processWithdrawalSchema = z.object({
 export type AffiliateWithdrawal = typeof affiliateWithdrawals.$inferSelect;
 export type InsertWithdrawal = z.infer<typeof insertWithdrawalSchema>;
 export type ProcessWithdrawal = z.infer<typeof processWithdrawalSchema>;
+
+// ============================================
+// ADVANCED API SECURITY TABLES (NEW - Safe migration)
+// ============================================
+
+// Secure API Keys for external API access (HMAC authentication)
+// This is a NEW table - does not affect existing tables
+export const secureApiKeys = pgTable("secure_api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  keyHash: text("key_hash").notNull(), // bcrypt hash of the API key (never store plain text)
+  keyPrefix: text("key_prefix").notNull(), // First 8 chars for identification (e.g., "sk_live_abc")
+  label: text("label").notNull().default("Default API Key"),
+  role: text("role").notNull().default("user"), // "admin" or "user" for RBAC
+  hmacSecret: text("hmac_secret").notNull(), // Secret for HMAC signature verification
+  isActive: boolean("is_active").notNull().default(true),
+  lastUsedAt: text("last_used_at"),
+  requestCount: integer("request_count").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+  expiresAt: text("expires_at"), // Optional expiry date
+}, (table) => [
+  index("secure_api_keys_user_id_idx").on(table.userId),
+  index("secure_api_keys_key_prefix_idx").on(table.keyPrefix),
+]);
+
+export const insertSecureApiKeySchema = createInsertSchema(secureApiKeys).omit({
+  id: true,
+  createdAt: true,
+  requestCount: true,
+  lastUsedAt: true,
+});
+
+export type SecureApiKey = typeof secureApiKeys.$inferSelect;
+export type InsertSecureApiKey = z.infer<typeof insertSecureApiKeySchema>;
+
+// Used Nonces for replay attack prevention
+// Stores recently used nonces with TTL to prevent request replication
+export const usedNonces = pgTable("used_nonces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nonce: text("nonce").notNull().unique(),
+  apiKeyId: varchar("api_key_id").notNull().references(() => secureApiKeys.id),
+  usedAt: text("used_at").notNull().default(sql`now()::text`),
+  expiresAt: text("expires_at").notNull(), // Auto-cleanup after this time
+}, (table) => [
+  index("used_nonces_nonce_idx").on(table.nonce),
+  index("used_nonces_expires_at_idx").on(table.expiresAt),
+]);
+
+export type UsedNonce = typeof usedNonces.$inferSelect;
+
+// Security audit log for tracking API access attempts
+export const securityAuditLog = pgTable("security_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKeyId: varchar("api_key_id"),
+  userId: varchar("user_id"),
+  action: text("action").notNull(), // "auth_success", "auth_failed", "hmac_invalid", "nonce_replay", etc.
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  endpoint: text("endpoint"),
+  statusCode: integer("status_code"),
+  errorMessage: text("error_message"),
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+}, (table) => [
+  index("security_audit_log_api_key_idx").on(table.apiKeyId),
+  index("security_audit_log_action_idx").on(table.action),
+  index("security_audit_log_created_at_idx").on(table.createdAt),
+]);
+
+export type SecurityAuditLog = typeof securityAuditLog.$inferSelect;
+
+// IP Blocklist for blocking malicious IPs
+export const ipBlocklist = pgTable("ip_blocklist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ipAddress: text("ip_address").notNull().unique(),
+  reason: text("reason").notNull(),
+  blockedBy: varchar("blocked_by").references(() => users.id), // Admin who blocked
+  blockedAt: text("blocked_at").notNull().default(sql`now()::text`),
+  expiresAt: text("expires_at"), // null = permanent block
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertIpBlockSchema = z.object({
+  ipAddress: z.string().min(7, "Invalid IP address"),
+  reason: z.string().min(3, "Reason is required"),
+  expiresAt: z.string().optional(),
+});
+
+export type IpBlock = typeof ipBlocklist.$inferSelect;
+export type InsertIpBlock = z.infer<typeof insertIpBlockSchema>;
+
+// Rate limit overrides per API key (beyond global limits)
+export const rateLimitOverrides = pgTable("rate_limit_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKeyId: varchar("api_key_id").notNull().references(() => secureApiKeys.id),
+  endpoint: text("endpoint").notNull(), // e.g., "/api/generate-video" or "*" for all
+  maxRequests: integer("max_requests").notNull().default(100),
+  windowMinutes: integer("window_minutes").notNull().default(60),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export type RateLimitOverride = typeof rateLimitOverrides.$inferSelect;

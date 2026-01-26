@@ -46,6 +46,15 @@ import {
   isPlanExpired,
 } from "./planEnforcement";
 import { stopAllProcessing } from "./bulkQueue";
+import { 
+  ipBlocklistMiddleware, 
+  apiKeyAuthMiddleware, 
+  hmacVerificationMiddleware, 
+  rbacMiddleware, 
+  generateSecureApiKey,
+  SecureRequest 
+} from "./middleware/security";
+import { secureApiKeys, usedNonces, securityAuditLog, ipBlocklist } from "@shared/schema";
 
 // Keep-alive agents for faster parallel downloads (reuse TCP connections)
 const httpAgent = new http.Agent({ 
@@ -14251,6 +14260,316 @@ Stats:
       res.status(500).json({ error: "UGC generation failed", message: error instanceof Error ? error.message : "Unknown error" });
     }
   });
+
+  // ==================== ADVANCED API SECURITY ENDPOINTS ====================
+
+  // Admin: Generate a new secure API key for a user
+  app.post("/api/admin/security/api-keys", requireAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        userId: z.string().min(1, "User ID is required"),
+        role: z.enum(["user", "admin"]).default("user"),
+        label: z.string().min(1, "Label is required").default("API Key"),
+        expiresInDays: z.number().int().min(1).max(365).optional(),
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ error: validationResult.error.errors[0].message });
+      }
+
+      const { userId, role, label, expiresInDays } = validationResult.data;
+
+      // Verify user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const result = await generateSecureApiKey(userId, role, label);
+
+      // Set expiry if specified
+      if (expiresInDays) {
+        const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
+        await db.update(secureApiKeys).set({ expiresAt }).where(eq(secureApiKeys.id, result.keyId));
+      }
+
+      console.log(`[Security] API key generated for user ${user.username} by admin`);
+
+      res.json({
+        success: true,
+        message: "API key generated successfully. Store these values securely - they cannot be retrieved again.",
+        apiKey: result.apiKey,
+        hmacSecret: result.hmacSecret,
+        keyId: result.keyId,
+        label: result.label,
+        role: result.role,
+      });
+    } catch (error) {
+      console.error("[Security] API key generation failed:", error);
+      res.status(500).json({ error: "Failed to generate API key" });
+    }
+  });
+
+  // Admin: List all API keys (without sensitive data)
+  app.get("/api/admin/security/api-keys", requireAdmin, async (req, res) => {
+    try {
+      const keys = await db
+        .select({
+          id: secureApiKeys.id,
+          userId: secureApiKeys.userId,
+          keyPrefix: secureApiKeys.keyPrefix,
+          label: secureApiKeys.label,
+          role: secureApiKeys.role,
+          isActive: secureApiKeys.isActive,
+          lastUsedAt: secureApiKeys.lastUsedAt,
+          requestCount: secureApiKeys.requestCount,
+          createdAt: secureApiKeys.createdAt,
+          expiresAt: secureApiKeys.expiresAt,
+        })
+        .from(secureApiKeys)
+        .orderBy(desc(secureApiKeys.createdAt));
+
+      // Get user info for each key
+      const keysWithUsers = await Promise.all(
+        keys.map(async (key) => {
+          const user = await storage.getUser(key.userId);
+          return {
+            ...key,
+            username: user?.username || "Unknown",
+          };
+        })
+      );
+
+      res.json(keysWithUsers);
+    } catch (error) {
+      console.error("[Security] Failed to list API keys:", error);
+      res.status(500).json({ error: "Failed to list API keys" });
+    }
+  });
+
+  // Admin: Revoke an API key
+  app.delete("/api/admin/security/api-keys/:keyId", requireAdmin, async (req, res) => {
+    try {
+      const { keyId } = req.params;
+
+      await db.update(secureApiKeys).set({ isActive: false }).where(eq(secureApiKeys.id, keyId));
+
+      console.log(`[Security] API key ${keyId} revoked by admin`);
+      res.json({ success: true, message: "API key revoked" });
+    } catch (error) {
+      console.error("[Security] Failed to revoke API key:", error);
+      res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // Admin: View security audit log
+  app.get("/api/admin/security/audit-log", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const action = req.query.action as string;
+
+      let query = db.select().from(securityAuditLog).orderBy(desc(securityAuditLog.createdAt)).limit(limit).offset(offset);
+
+      const logs = await query;
+      res.json(logs);
+    } catch (error) {
+      console.error("[Security] Failed to get audit log:", error);
+      res.status(500).json({ error: "Failed to get audit log" });
+    }
+  });
+
+  // Admin: Block an IP address
+  app.post("/api/admin/security/block-ip", requireAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        ipAddress: z.string().min(7, "Invalid IP address"),
+        reason: z.string().min(3, "Reason is required"),
+        expiresInHours: z.number().int().min(1).optional(),
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ error: validationResult.error.errors[0].message });
+      }
+
+      const { ipAddress, reason, expiresInHours } = validationResult.data;
+      const session = req.session as any;
+
+      let expiresAt: string | undefined;
+      if (expiresInHours) {
+        expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
+      }
+
+      await db.insert(ipBlocklist).values({
+        ipAddress,
+        reason,
+        blockedBy: session.userId,
+        expiresAt,
+      });
+
+      console.log(`[Security] IP ${ipAddress} blocked by admin: ${reason}`);
+      res.json({ success: true, message: `IP ${ipAddress} blocked` });
+    } catch (error: any) {
+      if (error.code === '23505') {
+        return res.status(400).json({ error: "IP address already blocked" });
+      }
+      console.error("[Security] Failed to block IP:", error);
+      res.status(500).json({ error: "Failed to block IP" });
+    }
+  });
+
+  // Admin: Unblock an IP address
+  app.delete("/api/admin/security/block-ip/:ipAddress", requireAdmin, async (req, res) => {
+    try {
+      const { ipAddress } = req.params;
+
+      await db.update(ipBlocklist).set({ isActive: false }).where(eq(ipBlocklist.ipAddress, decodeURIComponent(ipAddress)));
+
+      console.log(`[Security] IP ${ipAddress} unblocked by admin`);
+      res.json({ success: true, message: `IP ${ipAddress} unblocked` });
+    } catch (error) {
+      console.error("[Security] Failed to unblock IP:", error);
+      res.status(500).json({ error: "Failed to unblock IP" });
+    }
+  });
+
+  // Admin: List blocked IPs
+  app.get("/api/admin/security/blocked-ips", requireAdmin, async (req, res) => {
+    try {
+      const blockedIps = await db
+        .select()
+        .from(ipBlocklist)
+        .where(eq(ipBlocklist.isActive, true))
+        .orderBy(desc(ipBlocklist.blockedAt));
+
+      res.json(blockedIps);
+    } catch (error) {
+      console.error("[Security] Failed to list blocked IPs:", error);
+      res.status(500).json({ error: "Failed to list blocked IPs" });
+    }
+  });
+
+  // User: Generate their own API key (logged in users)
+  app.post("/api/user/security/api-key", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      // Check if user already has an active API key
+      const existingKeys = await db
+        .select()
+        .from(secureApiKeys)
+        .where(and(eq(secureApiKeys.userId, userId), eq(secureApiKeys.isActive, true)));
+
+      if (existingKeys.length >= 5) {
+        return res.status(400).json({ error: "Maximum 5 API keys allowed per user" });
+      }
+
+      const label = req.body.label || `API Key ${existingKeys.length + 1}`;
+      const result = await generateSecureApiKey(userId, "user", label);
+
+      console.log(`[Security] User ${userId} generated API key`);
+
+      res.json({
+        success: true,
+        message: "API key generated. Store these values securely - they cannot be retrieved again.",
+        apiKey: result.apiKey,
+        hmacSecret: result.hmacSecret,
+        keyId: result.keyId,
+        label: result.label,
+      });
+    } catch (error) {
+      console.error("[Security] User API key generation failed:", error);
+      res.status(500).json({ error: "Failed to generate API key" });
+    }
+  });
+
+  // User: List their API keys
+  app.get("/api/user/security/api-keys", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+
+      const keys = await db
+        .select({
+          id: secureApiKeys.id,
+          keyPrefix: secureApiKeys.keyPrefix,
+          label: secureApiKeys.label,
+          isActive: secureApiKeys.isActive,
+          lastUsedAt: secureApiKeys.lastUsedAt,
+          requestCount: secureApiKeys.requestCount,
+          createdAt: secureApiKeys.createdAt,
+          expiresAt: secureApiKeys.expiresAt,
+        })
+        .from(secureApiKeys)
+        .where(eq(secureApiKeys.userId, userId))
+        .orderBy(desc(secureApiKeys.createdAt));
+
+      res.json(keys);
+    } catch (error) {
+      console.error("[Security] Failed to list user API keys:", error);
+      res.status(500).json({ error: "Failed to list API keys" });
+    }
+  });
+
+  // User: Revoke their own API key
+  app.delete("/api/user/security/api-keys/:keyId", requireAuth, async (req, res) => {
+    try {
+      const session = req.session as any;
+      const userId = session.userId;
+      const { keyId } = req.params;
+
+      // Verify key belongs to user
+      const key = await db.select().from(secureApiKeys).where(eq(secureApiKeys.id, keyId)).limit(1);
+      if (key.length === 0 || key[0].userId !== userId) {
+        return res.status(404).json({ error: "API key not found" });
+      }
+
+      await db.update(secureApiKeys).set({ isActive: false }).where(eq(secureApiKeys.id, keyId));
+
+      console.log(`[Security] User ${userId} revoked API key ${keyId}`);
+      res.json({ success: true, message: "API key revoked" });
+    } catch (error) {
+      console.error("[Security] Failed to revoke user API key:", error);
+      res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // Example protected endpoint using all security layers (for external API access)
+  // This demonstrates how to use the security middleware chain
+  app.get(
+    "/api/secure/protected-data",
+    ipBlocklistMiddleware,
+    apiKeyAuthMiddleware,
+    hmacVerificationMiddleware,
+    async (req: SecureRequest, res) => {
+      res.json({
+        success: true,
+        message: "Access granted to protected data",
+        apiKeyId: req.secureApiKey?.id,
+        role: req.secureApiKey?.role,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  );
+
+  // Admin-only secure endpoint example
+  app.post(
+    "/api/secure/admin-action",
+    ipBlocklistMiddleware,
+    apiKeyAuthMiddleware,
+    hmacVerificationMiddleware,
+    rbacMiddleware(["admin"]),
+    async (req: SecureRequest, res) => {
+      res.json({
+        success: true,
+        message: "Admin action executed",
+        apiKeyId: req.secureApiKey?.id,
+      });
+    }
+  );
 
   const httpServer = createServer(app);
 
