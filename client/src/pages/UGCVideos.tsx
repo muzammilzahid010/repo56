@@ -563,8 +563,6 @@ export default function UGCVideos() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="IMAGE_ASPECT_RATIO_LANDSCAPE">Landscape (16:9)</SelectItem>
-                    <SelectItem value="IMAGE_ASPECT_RATIO_PORTRAIT">Portrait (9:16)</SelectItem>
-                    <SelectItem value="IMAGE_ASPECT_RATIO_SQUARE">Square (1:1)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -61,8 +61,6 @@ const styleOptions = [
 
 const aspectRatioOptions = [
   { value: "IMAGE_ASPECT_RATIO_LANDSCAPE", label: "Landscape (16:9)" },
-  { value: "IMAGE_ASPECT_RATIO_PORTRAIT", label: "Portrait (9:16)" },
-  { value: "IMAGE_ASPECT_RATIO_SQUARE", label: "Square (1:1)" },
 ];
 
 export default function ScriptToFrames() {
