@@ -110,9 +110,17 @@ export default function TextToImage() {
     );
   }
 
-  // Get card height - always portrait format for display
+  // Get card height based on selected aspect ratio
   const getCardHeight = () => {
-    return 280; // Always show in portrait format (taller cards)
+    switch (aspectRatio) {
+      case "IMAGE_ASPECT_RATIO_PORTRAIT":
+        return 320; // Taller for portrait (9:16)
+      case "IMAGE_ASPECT_RATIO_SQUARE":
+        return 220; // Medium for square (1:1)
+      case "IMAGE_ASPECT_RATIO_LANDSCAPE":
+      default:
+        return 160; // Shorter for landscape (16:9)
+    }
   };
 
   // Clear results when switching modes
