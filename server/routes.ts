@@ -8274,8 +8274,8 @@ Only respond with the JSON array, no additional text.`;
       };
 
       // Process images with controlled concurrency for VPS stability
-      // Limit to 5 concurrent requests to prevent overloading
-      const CONCURRENCY_LIMIT = 5;
+      // Limit to 25 concurrent requests for faster processing
+      const CONCURRENCY_LIMIT = 25;
       const activePromises: Promise<void>[] = [];
       
       for (let i = 0; i < prompts.length; i++) {
