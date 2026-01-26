@@ -101,6 +101,20 @@ const expressionOptions = [
   { value: "friendly and approachable", label: "Friendly" },
 ];
 
+const backgroundOptions = [
+  { value: "", label: "Select Background" },
+  { value: "modern minimalist studio with soft lighting", label: "Studio (Minimalist)" },
+  { value: "cozy home living room setting", label: "Home/Living Room" },
+  { value: "bright kitchen with natural light", label: "Kitchen" },
+  { value: "outdoor park with greenery", label: "Outdoor Park" },
+  { value: "urban city street background", label: "Urban/City" },
+  { value: "gym or fitness center", label: "Gym/Fitness" },
+  { value: "office workspace", label: "Office" },
+  { value: "beach or tropical setting", label: "Beach/Tropical" },
+  { value: "cafe or coffee shop", label: "Cafe/Coffee Shop" },
+  { value: "custom", label: "Custom Background..." },
+];
+
 export default function UGCVideos() {
   const { toast } = useToast();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -115,6 +129,8 @@ export default function UGCVideos() {
   const [avatarHair, setAvatarHair] = useState("");
   const [avatarClothing, setAvatarClothing] = useState("");
   const [avatarExpression, setAvatarExpression] = useState("");
+  const [avatarBackground, setAvatarBackground] = useState("");
+  const [customBackground, setCustomBackground] = useState("");
   
   // Generate avatar prompt from selections
   const generateAvatarPrompt = useCallback(() => {
@@ -126,9 +142,13 @@ export default function UGCVideos() {
     if (avatarClothing) parts.push(`wearing ${avatarClothing}`);
     if (avatarExpression) parts.push(avatarExpression);
     
+    // Add background
+    const bgValue = avatarBackground === "custom" ? customBackground : avatarBackground;
+    if (bgValue) parts.push(`in ${bgValue}`);
+    
     if (parts.length === 0) return "";
     return parts.join(" ") + " holding and showing the product naturally in a UGC style video";
-  }, [avatarGender, avatarAge, avatarEthnicity, avatarHair, avatarClothing, avatarExpression]);
+  }, [avatarGender, avatarAge, avatarEthnicity, avatarHair, avatarClothing, avatarExpression, avatarBackground, customBackground]);
   
   const [ugcResult, setUgcResult] = useState<UGCResult | null>(null);
   const [videoStatus, setVideoStatus] = useState<VideoStatusResult | null>(null);
@@ -655,7 +675,33 @@ export default function UGCVideos() {
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Background</Label>
+                    <Select value={avatarBackground} onValueChange={setAvatarBackground}>
+                      <SelectTrigger data-testid="select-avatar-background">
+                        <SelectValue placeholder="Select Background" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {backgroundOptions.map(opt => (
+                          <SelectItem key={opt.value || "empty"} value={opt.value || "none"}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                
+                {avatarBackground === "custom" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Custom Background Description</Label>
+                    <Input
+                      placeholder="e.g., luxury hotel lobby, mountain trail, modern kitchen..."
+                      value={customBackground}
+                      onChange={(e) => setCustomBackground(e.target.value)}
+                      data-testid="input-custom-background"
+                    />
+                  </div>
+                )}
                 
                 {generateAvatarPrompt() && (
                   <p className="text-xs text-muted-foreground bg-muted p-2 rounded">

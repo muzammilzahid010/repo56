@@ -8,3 +8,4 @@
 [x] 8. Reinstalled dependencies and restarted workflow successfully
 [x] 9. Removed Portrait and Square aspect ratio options - only Landscape (16:9) remains
 [x] 10. Increased UGC video auto-retry from 3 to 5 attempts
+[x] 11. Added Background selection option with preset options and custom input in UGC Videos
