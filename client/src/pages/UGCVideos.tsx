@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Upload, Video, Image, Loader2, Download, RefreshCw, Sparkles, Play, Layers } from "lucide-react";
+import { Upload, Video, Image, Loader2, Download, RefreshCw, Sparkles, Play, Layers, Clipboard } from "lucide-react";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,6 +121,8 @@ export default function UGCVideos() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoPrompt, setVideoPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("IMAGE_ASPECT_RATIO_LANDSCAPE");
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   
   // Avatar details state
   const [avatarGender, setAvatarGender] = useState("");
@@ -185,6 +187,81 @@ export default function UGCVideos() {
     };
     reader.readAsDataURL(file);
   }, [toast]);
+
+  // Process image from File object (used by drag-drop and paste)
+  const processImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file type", description: "Please upload an image file (PNG, JPG)", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please upload an image under 10MB", variant: "destructive" });
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedImage(event.target?.result as string);
+      toast({ title: "Image uploaded", description: "Product image ready for UGC generation" });
+    };
+    reader.readAsDataURL(file);
+  }, [toast]);
+
+  // Handle paste from clipboard
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          processImageFile(file);
+          break;
+        }
+      }
+    }
+  }, [processImageFile]);
+
+  // Handle drag over
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  // Handle drag leave
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if leaving the drop zone entirely
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  // Handle drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processImageFile(files[0]);
+    }
+  }, [processImageFile]);
+
+  // Add paste event listener
+  useEffect(() => {
+    document.addEventListener("paste", handlePaste);
+    return () => {
+      document.removeEventListener("paste", handlePaste);
+    };
+  }, [handlePaste]);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -591,8 +668,16 @@ export default function UGCVideos() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div 
-                className="border-2 border-dashed rounded-lg p-6 text-center hover-elevate cursor-pointer transition-colors"
+                ref={dropZoneRef}
+                className={`border-2 border-dashed rounded-lg p-6 text-center hover-elevate cursor-pointer transition-all duration-200 ${
+                  isDragging 
+                    ? "border-primary bg-primary/10 scale-[1.02]" 
+                    : "border-muted-foreground/25"
+                }`}
                 onClick={() => document.getElementById("image-upload")?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 data-testid="button-upload-image"
               >
                 {uploadedImage ? (
@@ -602,11 +687,20 @@ export default function UGCVideos() {
                     className="max-h-48 mx-auto rounded-lg object-contain"
                     data-testid="img-uploaded-product"
                   />
+                ) : isDragging ? (
+                  <div className="space-y-2 py-4">
+                    <Upload className="h-12 w-12 mx-auto text-primary animate-bounce" />
+                    <p className="text-sm font-medium text-primary">Drop image here</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <Image className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Click to upload product image</p>
+                    <p className="text-sm text-muted-foreground">Click, drag & drop, or paste image</p>
                     <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
+                    <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground/70">
+                      <Clipboard className="h-3 w-3" />
+                      <span>Ctrl+V to paste from clipboard</span>
+                    </div>
                   </div>
                 )}
                 <input
