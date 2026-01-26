@@ -11,6 +11,7 @@ import { saveAs } from 'file-saver';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { 
   FileText, Sparkles, Copy, Check, Image, ArrowRight, Film, Loader2, 
   Info, ShieldAlert, User, Archive, RefreshCw, Play, X,
-  ImagePlus, Link2, Unlink
+  ImagePlus, Link2, Unlink, Pencil
 } from "lucide-react";
 import {
   Collapsible,
@@ -86,6 +87,11 @@ export default function ScriptToFrames() {
   
   // Alignment view state
   const [showAlignment, setShowAlignment] = useState(true);
+  
+  // Edit prompt state
+  const [editingSceneIndex, setEditingSceneIndex] = useState<number | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState("");
+  const [isRegeneratingSingle, setIsRegeneratingSingle] = useState(false);
   
   // Video generation state
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
@@ -633,6 +639,126 @@ export default function ScriptToFrames() {
       toast({ variant: "destructive", title: "Retry Failed", description: error.message });
     } finally {
       setIsGeneratingImages(false);
+    }
+  };
+
+  // Regenerate single image with edited prompt
+  const handleRegenerateSingle = async (sceneIndex: number, newPrompt: string) => {
+    if (!newPrompt.trim()) {
+      toast({ variant: "destructive", title: "Empty Prompt", description: "Please enter a prompt." });
+      return;
+    }
+
+    // Check character reference
+    if (useCharacterReference && !characterPortraitUrl) {
+      toast({
+        variant: "destructive",
+        title: "Character Portrait Required",
+        description: "Please generate a character portrait first, or disable character reference.",
+      });
+      return;
+    }
+
+    setIsRegeneratingSingle(true);
+    setEditingSceneIndex(null);
+    
+    // Update the prompt and mark as generating
+    setGeneratedScenes(prev => prev.map((s, idx) => 
+      idx === sceneIndex 
+        ? { ...s, prompt: newPrompt, imageStatus: 'generating' as const, error: undefined } 
+        : s
+    ));
+
+    try {
+      let referenceImagesData: { base64: string; mimeType: string }[] | undefined;
+      
+      if (useCharacterReference && characterPortraitUrl) {
+        const converted = await convertUrlToBase64(characterPortraitUrl);
+        if (converted) {
+          referenceImagesData = [converted];
+        }
+      }
+
+      const requestBody: any = {
+        prompts: [newPrompt],
+        aspectRatio,
+        model: "nanoBanaPro",
+        isRetry: true,
+      };
+
+      if (referenceImagesData) {
+        requestBody.referenceImagesData = referenceImagesData;
+      }
+
+      const response = await fetch('/api/text-to-image/batch-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Regeneration failed');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No stream reader');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('event: image')) {
+            continue;
+          } else if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.index !== undefined) {
+                setGeneratedScenes(prev => {
+                  const updated = [...prev];
+                  const isSuccess = data.status === 'success' && data.imageUrl;
+                  updated[sceneIndex] = {
+                    ...updated[sceneIndex],
+                    imageStatus: isSuccess ? 'success' : 'failed',
+                    endImageUrl: data.imageUrl,
+                    error: data.error,
+                  };
+                  // Update next scene's startImageUrl
+                  if (isSuccess && sceneIndex + 1 < updated.length) {
+                    updated[sceneIndex + 1] = { 
+                      ...updated[sceneIndex + 1], 
+                      startImageUrl: data.imageUrl 
+                    };
+                  }
+                  return updated;
+                });
+              }
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      toast({ title: "Image Regenerated", description: "The image has been regenerated with the new prompt." });
+    } catch (error: any) {
+      setGeneratedScenes(prev => prev.map((s, idx) => 
+        idx === sceneIndex 
+          ? { ...s, imageStatus: 'failed' as const, error: error.message } 
+          : s
+      ));
+      toast({ variant: "destructive", title: "Regeneration Failed", description: error.message });
+    } finally {
+      setIsRegeneratingSingle(false);
     }
   };
 
@@ -1454,12 +1580,60 @@ export default function ScriptToFrames() {
                             >
                               {copiedIndex === index ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingSceneIndex(index);
+                                setEditedPrompt(scene.prompt);
+                              }}
+                              disabled={scene.imageStatus === 'generating' || isRegeneratingSingle || isGeneratingImages}
+                              data-testid={`button-edit-${scene.sceneNumber}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                           </div>
 
-                          {/* Prompt */}
-                          <div className="p-2 bg-muted/50 rounded-md">
-                            <p className="text-xs text-muted-foreground line-clamp-3">{scene.prompt}</p>
-                          </div>
+                          {/* Prompt - Editable */}
+                          {editingSceneIndex === index ? (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={editedPrompt}
+                                onChange={(e) => setEditedPrompt(e.target.value)}
+                                className="text-xs min-h-[60px]"
+                                placeholder="Edit prompt..."
+                                data-testid={`input-edit-prompt-${scene.sceneNumber}`}
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleRegenerateSingle(index, editedPrompt)}
+                                  disabled={isRegeneratingSingle}
+                                  data-testid={`button-regenerate-${scene.sceneNumber}`}
+                                >
+                                  {isRegeneratingSingle ? (
+                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="mr-1 h-3 w-3" />
+                                  )}
+                                  Regenerate
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingSceneIndex(null)}
+                                  disabled={isRegeneratingSingle}
+                                  data-testid={`button-cancel-edit-${scene.sceneNumber}`}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-2 bg-muted/50 rounded-md">
+                              <p className="text-xs text-muted-foreground line-clamp-3">{scene.prompt}</p>
+                            </div>
+                          )}
 
                           {/* Generated Image - with Alignment View (ALL scenes including Scene 1) */}
                           {showAlignment ? (
