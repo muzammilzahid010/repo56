@@ -25,7 +25,7 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import { Image as ImageIcon, Sparkles, Download, X, Upload, Monitor, Smartphone, Square, Layers, RefreshCw, AlertCircle, Loader2, Archive, Trash2, CheckCircle } from "lucide-react";
+import { Image as ImageIcon, Sparkles, Download, X, Upload, Monitor, Smartphone, Square, Layers, RefreshCw, AlertCircle, Loader2, Archive, Trash2, CheckCircle, Pencil } from "lucide-react";
 import LinearProgress from '@mui/material/LinearProgress';
 import CardContent from '@mui/material/CardContent';
 import Tabs from '@mui/material/Tabs';
@@ -66,6 +66,8 @@ export default function TextToImage() {
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
   const [referenceImagePreviews, setReferenceImagePreviews] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_REFERENCE_IMAGES = 1;
   const MAX_BATCH_REFERENCE_IMAGES = 1; // Batch mode only allows 1 reference image
@@ -790,6 +792,77 @@ export default function TextToImage() {
   const handleDeleteImage = (index: number) => {
     setBatchResults(prev => prev.filter((_, i) => i !== index));
     toast({ title: "Image Removed", description: "Image removed from results" });
+  };
+
+  // Regenerate with edited prompt
+  const handleRegenerateWithEditedPrompt = async (index: number, newPrompt: string) => {
+    if (!newPrompt.trim()) {
+      toast({ title: "Error", description: "Prompt cannot be empty", variant: "destructive" });
+      return;
+    }
+
+    // Update the prompt in results and mark as generating
+    setBatchResults(prev => prev.map((r, i) => 
+      i === index ? { ...r, prompt: newPrompt.trim(), status: 'generating' as const, error: undefined } : r
+    ));
+    setEditingIndex(null);
+    setEditedPrompt("");
+
+    try {
+      const requestBody: any = {
+        prompts: [newPrompt.trim()],
+        aspectRatio,
+        model: selectedModel,
+        isRetry: true
+      };
+
+      if (referenceImages.length > 0) {
+        const referenceImagesData = await Promise.all(
+          referenceImages.map(async (img) => {
+            const { base64, mimeType } = await convertImageToBase64(img);
+            return { base64, mimeType };
+          })
+        );
+        requestBody.referenceImagesData = referenceImagesData;
+      }
+
+      const response = await fetch('/api/text-to-image/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const result = data.results[0];
+
+      setBatchResults(prev => prev.map((r, i) => 
+        i === index ? {
+          prompt: newPrompt.trim(),
+          status: result.status,
+          imageUrl: result.imageUrl,
+          error: result.error,
+          retryCount: r.retryCount + 1
+        } : r
+      ));
+
+      if (result.status === 'success') {
+        toast({ title: "Image Regenerated!", description: "New image generated with updated prompt" });
+      } else {
+        toast({ title: "Regeneration Failed", description: result.error || "Failed to regenerate", variant: "destructive" });
+      }
+    } catch (error: any) {
+      console.error('[Regenerate Edited] Error:', error);
+      setBatchResults(prev => prev.map((r, i) => 
+        i === index ? { ...r, status: 'failed' as const, error: error.message } : r
+      ));
+      toast({ title: "Regeneration Failed", description: error.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -1747,23 +1820,102 @@ export default function TextToImage() {
 
                         <CardContent sx={{ p: 2, bgcolor: '#fafafa' }}>
                           <Stack spacing={1.5}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                color: '#374151',
-                                fontWeight: 500,
-                                lineHeight: 1.5,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                minHeight: 42
-                              }}
-                            >
-                              {result.prompt}
-                            </Typography>
+                            {editingIndex === index ? (
+                              /* Edit Mode */
+                              <Stack spacing={1}>
+                                <textarea
+                                  value={editedPrompt}
+                                  onChange={(e) => setEditedPrompt(e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    minHeight: '60px',
+                                    padding: '8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #d1d5db',
+                                    fontSize: '12px',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical',
+                                    outline: 'none'
+                                  }}
+                                  placeholder="Edit prompt..."
+                                  data-testid={`textarea-edit-prompt-${index}`}
+                                />
+                                <Stack direction="row" spacing={1}>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => handleRegenerateWithEditedPrompt(index, editedPrompt)}
+                                    sx={{
+                                      flex: 1,
+                                      bgcolor: '#22c55e',
+                                      fontSize: '0.7rem',
+                                      textTransform: 'none',
+                                      '&:hover': { bgcolor: '#16a34a' }
+                                    }}
+                                    data-testid={`button-save-edited-prompt-${index}`}
+                                  >
+                                    <RefreshCw size={12} style={{ marginRight: 4 }} />
+                                    Regenerate
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => {
+                                      setEditingIndex(null);
+                                      setEditedPrompt("");
+                                    }}
+                                    sx={{
+                                      fontSize: '0.7rem',
+                                      textTransform: 'none',
+                                      borderColor: '#9ca3af',
+                                      color: '#6b7280'
+                                    }}
+                                    data-testid={`button-cancel-edit-${index}`}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </Stack>
+                              </Stack>
+                            ) : (
+                              /* View Mode with Edit Button */
+                              <Stack direction="row" spacing={1} alignItems="flex-start">
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    flex: 1,
+                                    color: '#374151',
+                                    fontWeight: 500,
+                                    lineHeight: 1.5,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    minHeight: 42
+                                  }}
+                                >
+                                  {result.prompt}
+                                </Typography>
+                                {result.status === 'success' && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setEditingIndex(index);
+                                      setEditedPrompt(result.prompt);
+                                    }}
+                                    sx={{
+                                      p: 0.5,
+                                      color: '#9ca3af',
+                                      '&:hover': { color: '#374151', bgcolor: 'transparent' }
+                                    }}
+                                    data-testid={`button-edit-prompt-${index}`}
+                                  >
+                                    <Pencil size={14} />
+                                  </IconButton>
+                                )}
+                              </Stack>
+                            )}
                             
-                            {result.status === 'success' && result.imageUrl && (
+                            {result.status === 'success' && result.imageUrl && editingIndex !== index && (
                               <Stack direction="row" spacing={1}>
                                 <Button
                                   size="small"
