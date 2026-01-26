@@ -8008,8 +8008,8 @@ Only respond with the JSON array, no additional text.`;
         }
       };
 
-      // Process images with controlled concurrency for VPS stability
-      const CONCURRENCY_LIMIT = 5;
+      // Process images with controlled concurrency - increased for faster generation
+      const CONCURRENCY_LIMIT = 25;
       const results: BatchResult[] = [];
       const activePromises: Promise<void>[] = [];
       
