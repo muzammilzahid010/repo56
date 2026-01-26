@@ -57,7 +57,7 @@ export default function TextToImage() {
   const [mode, setMode] = useState<'single' | 'batch'>('single');
   const [prompt, setPrompt] = useState("");
   const [batchPrompts, setBatchPrompts] = useState("");
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("IMAGE_ASPECT_RATIO_LANDSCAPE");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("IMAGE_ASPECT_RATIO_PORTRAIT");
   const [selectedModel, setSelectedModel] = useState<Model>("imagen");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [batchResults, setBatchResults] = useState<BatchImageResult[]>([]);
