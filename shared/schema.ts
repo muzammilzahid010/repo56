@@ -33,6 +33,9 @@ export const users = pgTable("users", {
   referredBy: text("referred_by"), // UID of the user who referred this user
   affiliateBalance: integer("affiliate_balance").notNull().default(0), // Total earnings in PKR
   totalReferrals: integer("total_referrals").notNull().default(0), // Count of successful referrals
+  // Warning system fields
+  warningActive: boolean("warning_active").notNull().default(false), // Is warning currently active
+  warningMessage: text("warning_message").default(sql`null`), // Warning message to display
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
