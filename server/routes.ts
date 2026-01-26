@@ -13499,7 +13499,7 @@ Stats:
   app.post("/api/ugc/check-video-status", requireAuth, async (req: Request, res: Response) => {
     try {
       const { operationName, sceneId, tokenId, historyId, retryCount = 0, ugcImage, prompt } = req.body;
-      const MAX_AUTO_RETRIES = 3;
+      const MAX_AUTO_RETRIES = 5;
 
       if (!operationName) {
         return res.status(400).json({ error: "Operation name is required" });

@@ -234,7 +234,7 @@ export default function UGCVideos() {
           setIsPolling(false);
           toast({ title: "Video ready!", description: "Your UGC video has been generated successfully" });
         } else if (result.isRetrying && result.newOperationName && result.newTokenId) {
-          toast({ title: "Auto-retrying...", description: `Retry attempt ${result.retryCount}/3 with different token` });
+          toast({ title: "Auto-retrying...", description: `Retry attempt ${result.retryCount}/5 with different token` });
           setTimeout(() => poll(
             result.newOperationName!, 
             result.newSceneId || "", 

@@ -7,3 +7,4 @@
 [x] 7. Fixed Empire plan 2000 video daily limit - now Empire users have truly unlimited videos
 [x] 8. Reinstalled dependencies and restarted workflow successfully
 [x] 9. Removed Portrait and Square aspect ratio options - only Landscape (16:9) remains
+[x] 10. Increased UGC video auto-retry from 3 to 5 attempts
