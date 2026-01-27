@@ -38,16 +38,28 @@ function extractGender(description: string): string {
   return 'Unknown';
 }
 
+// Complete list of ElevenLabs supported languages and accents from json2video.com
+const SUPPORTED_LANGUAGES = [
+  // Main languages (alphabetical as per json2video.com)
+  'arabic', 'bulgarian', 'chinese', 'croatian', 'czech', 'danish', 'dutch',
+  'english', 'filipino', 'finnish', 'french', 'german', 'greek', 'hindi',
+  'hungarian', 'indonesian', 'italian', 'japanese', 'korean', 'malay',
+  'polish', 'portuguese', 'romanian', 'russian', 'slovak', 'spanish',
+  'swedish', 'tamil', 'turkish', 'ukrainian', 'vietnamese',
+  // Accents and regional variations
+  'british', 'american', 'australian', 'indian', 'irish', 'scottish', 'canadian',
+  'mexican', 'colombian', 'argentinian', 'brazilian', 'castilian',
+  'pakistani', 'bengali', 'punjabi', 'urdu', 'marathi', 'telugu', 'kannada', 'malayalam',
+  'thai', 'persian', 'hebrew', 'afrikaans', 'swahili', 'nigerian', 'kenyan',
+  'austrian', 'swiss', 'belgian', 'norwegian', 'icelandic',
+  'latin', 'uruguayan', 'chilean', 'venezuelan', 'peruvian', 'ecuadorian',
+  'taiwanese', 'cantonese', 'mandarin', 'singaporean', 'malaysian'
+];
+
 // Extract language/accent from description
 function extractLanguage(description: string): string {
   const desc = description.toLowerCase();
-  const languages = [
-    'english', 'hindi', 'spanish', 'french', 'german', 'italian', 'portuguese', 
-    'russian', 'japanese', 'korean', 'chinese', 'arabic', 'turkish', 'dutch',
-    'polish', 'romanian', 'filipino', 'indonesian', 'thai', 'vietnamese',
-    'british', 'american', 'australian', 'indian', 'irish', 'scottish'
-  ];
-  for (const lang of languages) {
+  for (const lang of SUPPORTED_LANGUAGES) {
     if (desc.includes(lang)) {
       return lang.charAt(0).toUpperCase() + lang.slice(1);
     }
@@ -315,21 +327,24 @@ export default function ElevenLabsVoices() {
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                      {voice.labels?.gender && (
-                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                          {voice.labels.gender}
-                        </Badge>
-                      )}
-                      {voice.labels?.age && (
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                          {voice.labels.age}
-                        </Badge>
-                      )}
-                      {voice.labels?.accent && (
-                        <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                          {voice.labels.accent}
-                        </Badge>
-                      )}
+                      {(() => {
+                        const gender = extractGender(voice.description || '');
+                        const language = extractLanguage(voice.description || '');
+                        return (
+                          <>
+                            {gender !== 'Unknown' && (
+                              <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                {gender}
+                              </Badge>
+                            )}
+                            {language !== 'Other' && (
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                {language}
+                              </Badge>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-4 min-h-[2.5rem]">
