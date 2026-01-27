@@ -4348,6 +4348,9 @@ export default function Admin() {
             </Form>
           </CardContent>
         </Card>
+
+        {/* Voice Library Sync */}
+        <VoiceLibrarySyncCard />
           </TabsContent>
 
           <TabsContent value="monitor">
@@ -4578,6 +4581,93 @@ interface AdminMessageData {
   message: string;
   isActive: boolean;
   createdAt: string;
+}
+
+// Voice Library Sync Component
+function VoiceLibrarySyncCard() {
+  const { toast } = useToast();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const { data: statsData, refetch: refetchStats } = useQuery<{ success: boolean; count: number }>({
+    queryKey: ['/api/admin/elevenlabs-voices/stats'],
+  });
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/admin/elevenlabs-voices/sync', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Sync Complete",
+          description: `Added: ${result.added}, Updated: ${result.updated}`,
+        });
+        refetchStats();
+      } else {
+        toast({
+          title: "Sync Failed",
+          description: result.error || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Sync Failed",
+        description: "Network error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  return (
+    <Card className="shadow-xl border-[#e5e7eb] bg-white mt-6">
+      <CardHeader className="bg-[#374151]/10 border-b border-[#e5e7eb]">
+        <CardTitle className="flex items-center gap-2 text-[#1f2937]">
+          <Mic className="w-5 h-5" />
+          ElevenLabs Voice Library
+        </CardTitle>
+        <CardDescription className="text-[#6b7280]">
+          Sync voices from external API to local database for faster loading
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6 bg-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-lg font-semibold text-[#374151]">
+              {statsData?.count?.toLocaleString() || 0} voices in database
+            </p>
+            <p className="text-sm text-[#6b7280]">
+              Sync downloads ~4800 voices from ElevenLabs API
+            </p>
+          </div>
+          <Button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white"
+            data-testid="button-sync-voices"
+          >
+            {isSyncing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sync Voices
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function AdminMessagesTab() {

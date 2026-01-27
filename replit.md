@@ -232,3 +232,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Batch 3 - UX Improvements
 9. **Login Page Signup Link** - "Don't have an account? Sign Up" link added to login page
+
+### Batch 4 - Voice Library Database Storage
+10. **ElevenLabs Voice Library Database** - Voices stored locally in `elevenlabs_voices` table for offline access
+11. **Admin Sync Button** - Admin Panel > Maintenance tab has "Sync Voices" button to download ~4800 voices from API
+12. **Automatic Fallback** - Frontend uses local database first, falls back to external API if database is empty
+13. **API Endpoints**: 
+    - `GET /api/elevenlabs-voices` - Get voices from local database
+    - `POST /api/admin/elevenlabs-voices/sync` - Sync voices from external API
+    - `GET /api/admin/elevenlabs-voices/stats` - Get voice count
