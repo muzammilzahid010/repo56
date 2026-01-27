@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Library Explorer</title>
+    <style>
+        /* --- Basic CSS Reset and Styling --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        /* --- Search & Control Bar --- */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #searchQuery {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        #searchQuery:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .pagination-controls button {
+            background-color: #6c757d;
+        }
+        .pagination-controls button:hover {
+            background-color: #5a6268;
+        }
+
+        /* --- Voice Grid Layout --- */
+        #voiceResults {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .voice-card {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s;
+        }
+        .voice-card:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+        .voice-card h3 {
+            margin-top: 0;
+            color: #28a745;
+            font-size: 1.1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .voice-id-text {
+            font-size: 0.75em;
+            color: #888;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .voice-card p {
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 15px;
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+        }
+        .preview-button {
+            background-color: #28a745;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+        .preview-button:hover {
+            background-color: #1e7e34;
+        }
+        .voice-id-label {
+            font-weight: bold;
+        }
+
+        /* --- Loading and Error States --- */
+        #statusMessage {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #dc3545;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ElevenLabs Voice Explorer</h1>
+
+        <div class="controls">
+            <input type="text" id="searchQuery" placeholder="Search by ID, Name, or Description (e.g., 'professional')">
+            <button id="searchButton">Search</button>
+            <button id="resetButton">Reset</button>
+        </div>
+
+        <div class="pagination-controls controls">
+            <button id="prevPage" disabled>Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextPage">Next</button>
+        </div>
+
+        <div id="statusMessage">Enter a search term above or click Reset to view all voices.</div>
+        <div id="voiceResults">
+            <!-- Voice cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const API_BASE_URL = 'https://voice-library.fakcloud.tech/api';
+        const VOICES_PER_PAGE = 24; // Adjust this number based on desired card count
+        
+        // --- DOM Elements ---
+        const searchInput = document.getElementById('searchQuery');
+        const searchButton = document.getElementById('searchButton');
+        const resetButton = document.getElementById('resetButton');
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageInfoSpan = document.getElementById('pageInfo');
+        const resultsContainer = document.getElementById('voiceResults');
+        const statusDiv = document.getElementById('statusMessage');
+
+        // --- State Management ---
+        let currentPage = 1;
+        let currentResults = [];
+        let currentQuery = '';
+
+        // --- Event Listeners ---
+        searchButton.addEventListener('click', () => performSearch());
+        resetButton.addEventListener('click', () => resetSearch());
+        prevButton.addEventListener('click', () => changePage(-1));
+        nextButton.addEventListener('click', () => changePage(1));
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // --- Core Functions ---
+
+        /**
+         * Utility to display status messages (loading, error, success)
+         */
+        function setStatus(message, isError = false) {
+            statusDiv.innerHTML = message;
+            statusDiv.style.color = isError ? '#dc3545' : '#333';
+        }
+
+        /**
+         * Utility for playing audio previews
+         */
+        function playPreview(url) {
+            const audio = new Audio(url);
+            audio.play().catch(e => console.error("Audio playback failed:", e));
+        }
+
+        /**
+         * Utility to render the voice cards into the results area.
+         */
+        function renderResults() {
+            resultsContainer.innerHTML = '';
+            
+            const startIndex = (currentPage - 1) * VOICES_PER_PAGE;
+            const endIndex = startIndex + VOICES_PER_PAGE;
+            const pageData = currentResults.slice(startIndex, endIndex);
+
+            if (pageData.length === 0) {
+                if (currentQuery) {
+                    setStatus(`No results found for query: "${currentQuery}"`, true);
+                } else {
+                    setStatus("No voices found in the library.", true);
+                }
+                return;
+            }
+
+            pageData.forEach(voice => {
+                const card = document.createElement('div');
+                card.className = 'voice-card';
+                
+                card.innerHTML = `
+                    <h3>${voice.name}</h3>
+                    <div class="voice-id-text"><span class="voice-id-label">ID:</span> ${voice.voice_id}</div>
+                    <p>${voice.description}</p>
+                    <div class="card-actions">
+                        <button class="preview-button" onclick="window.playPreview('${voice.preview_url}')">▶️ Preview</button>
+                        <span style="font-size:0.8em; color:#0056b3;">Click ID for direct fetch</span>
+                    </div>
+                `;
+                
+                // Add click listener to the voice ID for direct fetch as a secondary feature
+                card.querySelector('.voice-id-text').onclick = () => fetchAndDisplaySingleVoice(voice.voice_id);
+
+                resultsContainer.appendChild(card);
+            });
+
+            updatePaginationControls(pageData.length);
+            setStatus(`Showing ${startIndex + 1} - ${Math.min(endIndex, currentResults.length)} of ${currentResults.length} results.`, false);
+        }
+        
+        /**
+         * Fetches and displays a single voice result in an alert or status area.
+         */
+        async function fetchAndDisplaySingleVoice(voiceId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/voice?id=${voiceId}`);
+                const json = await response.json();
+                
+                if (json.success && json.data) {
+                    const details = `Voice Found:\nName: ${json.data.name}\nDescription: ${json.data.description.substring(0, 80)}...`;
+                    alert(details);
+                } else {
+                    alert(`Error retrieving voice ID ${voiceId}: ${json.error || 'Unknown error'}`);
+                }
+            } catch (e) {
+                alert(`Failed to fetch single voice: ${e.message}`);
+            }
+        }
+
+
+        /**
+         * Updates the pagination buttons and page counter.
+         */
+        function updatePaginationControls(itemsOnPage) {
+            const totalPages = Math.ceil(currentResults.length / VOICES_PER_PAGE);
+            pageInfoSpan.textContent = `Page ${currentPage} of ${totalPages}`;
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage >= totalPages || itemsOnPage < VOICES_PER_PAGE;
+        }
+
+        /**
+         * Navigates between pages.
+         */
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            const totalPages = Math.ceil(currentResults.length / VOICES_PER_PAGE);
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderResults();
+            }
+        }
+
+        /**
+         * Initiates a search against the Worker API.
+         */
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            currentQuery = query;
+            currentPage = 1;
+            
+            setStatus(`Searching for "${query}"... <span class="loader"></span>`, false);
+            searchButton.disabled = true;
+            prevButton.disabled = true;
+            nextButton.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}&limit=1000`); // Fetch a large batch to handle pagination client-side
+                const json = await response.json();
+
+                if (json.success && json.data) {
+                    currentResults = json.data;
+                    renderResults();
+                } else {
+                    currentResults = [];
+                    renderResults();
+                    setStatus(`Search failed: ${json.error || 'Unknown API error'}`, true);
+                }
+            } catch (error) {
+                currentResults = [];
+                renderResults();
+                setStatus(`Connection Error: Could not reach the API endpoint. ${error.message}`, true);
+            } finally {
+                searchButton.disabled = false;
+            }
+        }
+
+        /**
+         * Resets the view to show all voices (or the first page of all voices).
+         */
+        function resetSearch() {
+            searchInput.value = '';
+            currentQuery = '';
+            currentPage = 1;
+            fetchAllVoices();
+        }
+        
+        /**
+         * Fetches ALL voices initially by searching for an empty string (or a known all-inclusive term).
+         * NOTE: Since your Worker `/api/search` requires a query, we search for a common term that should match everything, 
+         * or we can modify the Worker to allow an empty query. For now, we'll use a term that should exist 
+         * or simplify by searching for the first voice ID's name part if the Worker doesn't allow empty search.
+         * 
+         * For simplicity with the current Worker logic, we will change the reset behavior to fetch a known common term.
+         */
+        async function fetchAllVoices() {
+            setStatus(`Loading all voices... <span class="loader"></span>`, false);
+            searchButton.disabled = true;
+            
+            try {
+                // Fetching a common, short query to get many results. You might need a better strategy 
+                // if the Worker doesn't support empty search (q='').
+                const response = await fetch(`${API_BASE_URL}/search?q=a&limit=1000`); 
+                const json = await response.json();
+
+                if (json.success && json.data) {
+                    currentResults = json.data;
+                    renderResults();
+                } else {
+                    currentResults = [];
+                    renderResults();
+                    setStatus(`Failed to load all voices: ${json.error || 'Unknown API error'}`, true);
+                }
+            } catch (error) {
+                currentResults = [];
+                renderResults();
+                setStatus(`Connection Error: Could not reach the API endpoint. ${error.message}`, true);
+            } finally {
+                searchButton.disabled = false;
+            }
+        }
+
+        // --- Initialization ---
+        // Make global functions accessible from the inline onclick attributes in the HTML
+        window.playPreview = playPreview;
+        window.fetchAndDisplaySingleVoice = fetchAndDisplaySingleVoice;
+        
+        // Initial load when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAllVoices();
+        });
+
+    </script>
+
+</body>
+</html>

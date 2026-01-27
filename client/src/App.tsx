@@ -32,6 +32,7 @@ import TextToSpeechV2 from "@/pages/TextToSpeechV2";
 import VoiceCloningV2 from "@/pages/VoiceCloningV2";
 import Affiliate from "@/pages/Affiliate";
 import UGCVideos from "@/pages/UGCVideos";
+import ElevenLabsVoices from "@/pages/ElevenLabsVoices";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/voice-cloning-v2" component={VoiceCloningV2} />
       <Route path="/affiliate" component={Affiliate} />
       <Route path="/ugc-videos" component={UGCVideos} />
+      <Route path="/elevenlabs-voices" component={ElevenLabsVoices} />
       <Route component={NotFound} />
     </Switch>
   );
