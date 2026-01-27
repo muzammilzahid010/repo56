@@ -883,3 +883,21 @@ export const rateLimitOverrides = pgTable("rate_limit_overrides", {
 });
 
 export type RateLimitOverride = typeof rateLimitOverrides.$inferSelect;
+
+// ElevenLabs Voice Library - stored locally for offline access
+export const elevenlabsVoices = pgTable("elevenlabs_voices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voiceId: text("voice_id").notNull().unique(), // ElevenLabs voice_id
+  name: text("name").notNull(),
+  description: text("description"),
+  previewUrl: text("preview_url"),
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+});
+
+export const insertElevenlabsVoiceSchema = createInsertSchema(elevenlabsVoices).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ElevenlabsVoice = typeof elevenlabsVoices.$inferSelect;
+export type InsertElevenlabsVoice = z.infer<typeof insertElevenlabsVoiceSchema>;

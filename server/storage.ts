@@ -65,6 +65,9 @@ import {
   type AffiliateWithdrawal,
   type InsertWithdrawal,
   type ProcessWithdrawal,
+  elevenlabsVoices,
+  type ElevenlabsVoice,
+  type InsertElevenlabsVoice,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, notInArray, inArray, isNotNull, ne, gt, lt } from "drizzle-orm";
@@ -2405,6 +2408,47 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
     return !!pending;
+  }
+
+  // ElevenLabs Voice Library methods
+  async getAllElevenlabsVoices(): Promise<ElevenlabsVoice[]> {
+    return await db.select().from(elevenlabsVoices).orderBy(asc(elevenlabsVoices.name));
+  }
+
+  async getElevenlabsVoiceCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(elevenlabsVoices);
+    return result[0]?.count || 0;
+  }
+
+  async syncElevenlabsVoices(voices: InsertElevenlabsVoice[]): Promise<{ added: number; updated: number }> {
+    let added = 0;
+    let updated = 0;
+    
+    for (const voice of voices) {
+      const existing = await db.select().from(elevenlabsVoices)
+        .where(eq(elevenlabsVoices.voiceId, voice.voiceId))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        await db.update(elevenlabsVoices)
+          .set({
+            name: voice.name,
+            description: voice.description,
+            previewUrl: voice.previewUrl,
+          })
+          .where(eq(elevenlabsVoices.voiceId, voice.voiceId));
+        updated++;
+      } else {
+        await db.insert(elevenlabsVoices).values(voice);
+        added++;
+      }
+    }
+    
+    return { added, updated };
+  }
+
+  async clearElevenlabsVoices(): Promise<void> {
+    await db.delete(elevenlabsVoices);
   }
 }
 

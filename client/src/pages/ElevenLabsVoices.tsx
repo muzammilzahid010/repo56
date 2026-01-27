@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, Filter, X, Copy, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const API_BASE_URL = 'https://voice-library.fakcloud.tech/api';
+// Use local database API (fallback to external if database is empty)
+const LOCAL_API_URL = '/api/elevenlabs-voices';
+const EXTERNAL_API_URL = 'https://voice-library.fakcloud.tech/api/search?q=e&limit=5000';
 const VOICES_PER_PAGE = 24;
 
 interface Voice {
@@ -82,24 +84,34 @@ export default function ElevenLabsVoices() {
     queryKey: ["elevenlabs-voices-all"],
     queryFn: async () => {
       try {
-        console.log("Fetching all voices from API...");
-        // Use "e" as search query since API requires non-empty query - "e" matches ~4800 voices
-        // Load all ~4800 voices
-        const response = await fetch(`${API_BASE_URL}/search?q=e&limit=5000`);
-        const json = await response.json();
-        console.log("API response:", json.meta);
-        if (json.success && json.data) {
-          console.log(`Loaded ${json.data.length} voices`);
-          return json.data;
+        console.log("Fetching voices from local database...");
+        // First try local database
+        const localResponse = await fetch(LOCAL_API_URL);
+        const localJson = await localResponse.json();
+        
+        if (localJson.success && localJson.data && localJson.data.length > 0) {
+          console.log(`Loaded ${localJson.data.length} voices from database`);
+          return localJson.data;
         }
-        console.error("API returned unsuccessful response:", json);
+        
+        // If database is empty, fallback to external API
+        console.log("Database empty, fetching from external API...");
+        const externalResponse = await fetch(EXTERNAL_API_URL);
+        const externalJson = await externalResponse.json();
+        
+        if (externalJson.success && externalJson.data) {
+          console.log(`Loaded ${externalJson.data.length} voices from external API`);
+          return externalJson.data;
+        }
+        
+        console.error("Both APIs failed");
         return [];
       } catch (err) {
         console.error("Failed to fetch voices:", err);
         throw err;
       }
     },
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
     retry: 2,
   });
 

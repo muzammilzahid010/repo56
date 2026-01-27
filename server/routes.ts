@@ -3283,6 +3283,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ElevenLabs Voice Library - Get all voices from local database
+  app.get("/api/elevenlabs-voices", async (req, res) => {
+    try {
+      const voices = await storage.getAllElevenlabsVoices();
+      res.json({
+        success: true,
+        data: voices.map(v => ({
+          voice_id: v.voiceId,
+          name: v.name,
+          description: v.description,
+          preview_url: v.previewUrl,
+        })),
+        meta: {
+          total: voices.length,
+          source: 'database'
+        }
+      });
+    } catch (error) {
+      console.error('[ElevenLabs Voices] Failed to fetch:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch voices' });
+    }
+  });
+
+  // Admin - Get voice library stats
+  app.get("/api/admin/elevenlabs-voices/stats", requireAdmin, async (req, res) => {
+    try {
+      const count = await storage.getElevenlabsVoiceCount();
+      res.json({ success: true, count });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to get stats' });
+    }
+  });
+
+  // Admin - Sync voices from external API to database
+  app.post("/api/admin/elevenlabs-voices/sync", requireAdmin, async (req, res) => {
+    try {
+      console.log('[ElevenLabs Sync] Starting sync from external API...');
+      
+      // Fetch from external API
+      const response = await fetch('https://voice-library.fakcloud.tech/api/search?q=e&limit=5000');
+      const json = await response.json();
+      
+      if (!json.success || !json.data) {
+        return res.status(500).json({ success: false, error: 'Failed to fetch from external API' });
+      }
+      
+      console.log(`[ElevenLabs Sync] Fetched ${json.data.length} voices from API`);
+      
+      // Transform and sync to database
+      const voicesToSync = json.data.map((v: any) => ({
+        voiceId: v.voice_id,
+        name: v.name,
+        description: v.description || null,
+        previewUrl: v.preview_url || null,
+      }));
+      
+      const result = await storage.syncElevenlabsVoices(voicesToSync);
+      
+      console.log(`[ElevenLabs Sync] Complete - Added: ${result.added}, Updated: ${result.updated}`);
+      
+      res.json({
+        success: true,
+        message: `Synced ${json.data.length} voices`,
+        added: result.added,
+        updated: result.updated,
+      });
+    } catch (error) {
+      console.error('[ElevenLabs Sync] Error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Sync failed' 
+      });
+    }
+  });
+
+  // Admin - Clear all voices from database
+  app.delete("/api/admin/elevenlabs-voices", requireAdmin, async (req, res) => {
+    try {
+      await storage.clearElevenlabsVoices();
+      res.json({ success: true, message: 'All voices deleted' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to clear voices' });
+    }
+  });
+
   // Admin Dashboard Stats endpoint - lightweight SQL aggregation for dashboard
   app.get("/api/admin/dashboard-stats", requireAuth, requireAdmin, async (req, res) => {
     try {
