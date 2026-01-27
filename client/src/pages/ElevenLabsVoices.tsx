@@ -22,35 +22,46 @@ interface Voice {
     age?: string;
     gender?: string;
     use_case?: string;
+    language?: string;
   };
 }
 
 export default function ElevenLabsVoices() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [accentFilter, setAccentFilter] = useState<string>("all");
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: allVoices = [], isLoading, refetch, isFetching } = useQuery<Voice[]>({
-    queryKey: ["elevenlabs-voices", searchQuery],
+    queryKey: ["elevenlabs-voices-all"],
     queryFn: async () => {
-      const query = searchQuery.trim() || "voice";
-      const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}&limit=5000`);
+      const response = await fetch(`${API_BASE_URL}/search?q=&limit=10000`);
       const json = await response.json();
       if (json.success && json.data) {
         return json.data;
       }
       return [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
   });
 
   const filteredVoices = allVoices.filter((voice) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = voice.name?.toLowerCase().includes(query);
+      const matchesDescription = voice.description?.toLowerCase().includes(query);
+      const matchesId = voice.voice_id?.toLowerCase().includes(query);
+      if (!matchesName && !matchesDescription && !matchesId) {
+        return false;
+      }
+    }
     if (genderFilter !== "all" && voice.labels?.gender?.toLowerCase() !== genderFilter.toLowerCase()) {
       return false;
     }
@@ -58,6 +69,9 @@ export default function ElevenLabsVoices() {
       return false;
     }
     if (accentFilter !== "all" && voice.labels?.accent?.toLowerCase() !== accentFilter.toLowerCase()) {
+      return false;
+    }
+    if (languageFilter !== "all" && voice.labels?.language?.toLowerCase() !== languageFilter.toLowerCase()) {
       return false;
     }
     return true;
@@ -69,11 +83,12 @@ export default function ElevenLabsVoices() {
 
   const uniqueGenders = Array.from(new Set(allVoices.map(v => v.labels?.gender).filter(Boolean))) as string[];
   const uniqueAges = Array.from(new Set(allVoices.map(v => v.labels?.age).filter(Boolean))) as string[];
-  const uniqueAccents = (Array.from(new Set(allVoices.map(v => v.labels?.accent).filter(Boolean))) as string[]).slice(0, 20);
+  const uniqueAccents = Array.from(new Set(allVoices.map(v => v.labels?.accent).filter(Boolean))) as string[];
+  const uniqueLanguages = Array.from(new Set(allVoices.map(v => v.labels?.language).filter(Boolean))) as string[];
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, genderFilter, ageFilter, accentFilter]);
+  }, [searchQuery, genderFilter, ageFilter, accentFilter, languageFilter]);
 
   const playPreview = useCallback((voice: Voice) => {
     if (playingVoiceId === voice.voice_id) {
@@ -111,17 +126,19 @@ export default function ElevenLabsVoices() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    refetch();
+    setSearchQuery(searchInput);
   };
 
   const clearFilters = () => {
     setGenderFilter("all");
     setAgeFilter("all");
     setAccentFilter("all");
+    setLanguageFilter("all");
     setSearchQuery("");
+    setSearchInput("");
   };
 
-  const hasActiveFilters = genderFilter !== "all" || ageFilter !== "all" || accentFilter !== "all" || searchQuery !== "";
+  const hasActiveFilters = genderFilter !== "all" || ageFilter !== "all" || accentFilter !== "all" || languageFilter !== "all" || searchQuery !== "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -150,15 +167,15 @@ export default function ElevenLabsVoices() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type="text"
-                  placeholder="Search by name, description, accent, gender..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name, description, ID..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="pl-10 h-12 text-lg border-2 focus:border-purple-500"
                   data-testid="input-search-voices"
                 />
               </div>
               <Button type="submit" size="lg" className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" data-testid="button-search">
-                {isFetching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
               </Button>
             </form>
 
@@ -200,6 +217,18 @@ export default function ElevenLabsVoices() {
                   <SelectItem value="all">All Accents</SelectItem>
                   {uniqueAccents.map((accent) => (
                     <SelectItem key={accent} value={accent!.toLowerCase()}>{accent}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                <SelectTrigger className="w-[160px]" data-testid="select-language">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  {uniqueLanguages.map((language) => (
+                    <SelectItem key={language} value={language!.toLowerCase()}>{language}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
