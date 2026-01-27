@@ -82,8 +82,8 @@ export default function ElevenLabsVoices() {
     queryKey: ["elevenlabs-voices-all"],
     queryFn: async () => {
       // Use "e" as search query since API requires non-empty query - "e" matches ~4800 voices
-      // Limit to 500 for faster loading - most common voices first
-      const response = await fetch(`${API_BASE_URL}/search?q=e&limit=500`);
+      // Load all ~4800 voices
+      const response = await fetch(`${API_BASE_URL}/search?q=e&limit=5000`);
       const json = await response.json();
       if (json.success && json.data) {
         return json.data;
