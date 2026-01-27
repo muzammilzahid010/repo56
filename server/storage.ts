@@ -2421,30 +2421,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async syncElevenlabsVoices(voices: InsertElevenlabsVoice[]): Promise<{ added: number; updated: number }> {
-    let added = 0;
-    let updated = 0;
+    // Clear existing voices and bulk insert (much faster than upsert one by one)
+    await db.delete(elevenlabsVoices);
     
-    for (const voice of voices) {
-      const existing = await db.select().from(elevenlabsVoices)
-        .where(eq(elevenlabsVoices.voiceId, voice.voiceId))
-        .limit(1);
-      
-      if (existing.length > 0) {
-        await db.update(elevenlabsVoices)
-          .set({
-            name: voice.name,
-            description: voice.description,
-            previewUrl: voice.previewUrl,
-          })
-          .where(eq(elevenlabsVoices.voiceId, voice.voiceId));
-        updated++;
-      } else {
-        await db.insert(elevenlabsVoices).values(voice);
-        added++;
-      }
+    // Insert in batches of 500 for better performance
+    const BATCH_SIZE = 500;
+    let added = 0;
+    
+    for (let i = 0; i < voices.length; i += BATCH_SIZE) {
+      const batch = voices.slice(i, i + BATCH_SIZE);
+      await db.insert(elevenlabsVoices).values(batch);
+      added += batch.length;
+      console.log(`[ElevenLabs Sync] Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(voices.length / BATCH_SIZE)}`);
     }
     
-    return { added, updated };
+    return { added, updated: 0 };
   }
 
   async clearElevenlabsVoices(): Promise<void> {
