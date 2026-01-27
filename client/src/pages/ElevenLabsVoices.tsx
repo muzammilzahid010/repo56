@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, Filter, X, Copy, Check, RefreshCw } from "lucide-react";
+import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, X, Copy, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = 'https://voice-library.fakcloud.tech/api';
@@ -33,10 +32,6 @@ export default function ElevenLabsVoices() {
   const [currentPage, setCurrentPage] = useState(1);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [genderFilter, setGenderFilter] = useState<string>("all");
-  const [ageFilter, setAgeFilter] = useState<string>("all");
-  const [accentFilter, setAccentFilter] = useState<string>("all");
-  const [languageFilter, setLanguageFilter] = useState<string>("all");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: allVoices = [], isLoading, refetch, isFetching } = useQuery<Voice[]>({
@@ -64,18 +59,6 @@ export default function ElevenLabsVoices() {
         return false;
       }
     }
-    if (genderFilter !== "all" && voice.labels?.gender?.toLowerCase() !== genderFilter.toLowerCase()) {
-      return false;
-    }
-    if (ageFilter !== "all" && voice.labels?.age?.toLowerCase() !== ageFilter.toLowerCase()) {
-      return false;
-    }
-    if (accentFilter !== "all" && voice.labels?.accent?.toLowerCase() !== accentFilter.toLowerCase()) {
-      return false;
-    }
-    if (languageFilter !== "all" && voice.labels?.language?.toLowerCase() !== languageFilter.toLowerCase()) {
-      return false;
-    }
     return true;
   });
 
@@ -83,14 +66,9 @@ export default function ElevenLabsVoices() {
   const startIndex = (currentPage - 1) * VOICES_PER_PAGE;
   const paginatedVoices = filteredVoices.slice(startIndex, startIndex + VOICES_PER_PAGE);
 
-  const uniqueGenders = Array.from(new Set(allVoices.map(v => v.labels?.gender).filter(Boolean))) as string[];
-  const uniqueAges = Array.from(new Set(allVoices.map(v => v.labels?.age).filter(Boolean))) as string[];
-  const uniqueAccents = Array.from(new Set(allVoices.map(v => v.labels?.accent).filter(Boolean))) as string[];
-  const uniqueLanguages = Array.from(new Set(allVoices.map(v => v.labels?.language).filter(Boolean))) as string[];
-
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, genderFilter, ageFilter, accentFilter, languageFilter]);
+  }, [searchQuery]);
 
   const playPreview = useCallback((voice: Voice) => {
     if (playingVoiceId === voice.voice_id) {
@@ -131,16 +109,10 @@ export default function ElevenLabsVoices() {
     setSearchQuery(searchInput);
   };
 
-  const clearFilters = () => {
-    setGenderFilter("all");
-    setAgeFilter("all");
-    setAccentFilter("all");
-    setLanguageFilter("all");
+  const clearSearch = () => {
     setSearchQuery("");
     setSearchInput("");
   };
-
-  const hasActiveFilters = genderFilter !== "all" || ageFilter !== "all" || accentFilter !== "all" || languageFilter !== "all" || searchQuery !== "";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -181,68 +153,16 @@ export default function ElevenLabsVoices() {
               </Button>
             </form>
 
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex flex-wrap gap-4 items-center justify-between">
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filters:</span>
+                {searchQuery && (
+                  <Button variant="ghost" size="sm" onClick={clearSearch} className="text-red-500 hover:text-red-600" data-testid="button-clear-search">
+                    <X className="w-4 h-4 mr-1" />
+                    Clear Search
+                  </Button>
+                )}
               </div>
-
-              <Select value={genderFilter} onValueChange={setGenderFilter}>
-                <SelectTrigger className="w-[140px]" data-testid="select-gender">
-                  <SelectValue placeholder="Gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Genders</SelectItem>
-                  {uniqueGenders.map((gender) => (
-                    <SelectItem key={gender} value={gender!.toLowerCase()}>{gender}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={ageFilter} onValueChange={setAgeFilter}>
-                <SelectTrigger className="w-[140px]" data-testid="select-age">
-                  <SelectValue placeholder="Age" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ages</SelectItem>
-                  {uniqueAges.map((age) => (
-                    <SelectItem key={age} value={age!.toLowerCase()}>{age}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={accentFilter} onValueChange={setAccentFilter}>
-                <SelectTrigger className="w-[160px]" data-testid="select-accent">
-                  <SelectValue placeholder="Accent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Accents</SelectItem>
-                  {uniqueAccents.map((accent) => (
-                    <SelectItem key={accent} value={accent!.toLowerCase()}>{accent}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={languageFilter} onValueChange={setLanguageFilter}>
-                <SelectTrigger className="w-[160px]" data-testid="select-language">
-                  <SelectValue placeholder="Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Languages</SelectItem>
-                  {uniqueLanguages.map((language) => (
-                    <SelectItem key={language} value={language!.toLowerCase()}>{language}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-500 hover:text-red-600" data-testid="button-clear-filters">
-                  <X className="w-4 h-4 mr-1" />
-                  Clear All
-                </Button>
-              )}
-
-              <div className="ml-auto text-sm text-gray-500">
+              <div className="text-sm text-gray-500">
                 Showing {filteredVoices.length.toLocaleString()} voices
               </div>
             </div>
