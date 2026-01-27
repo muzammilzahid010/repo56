@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, X, Copy, Check, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, Filter, X, Copy, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = 'https://voice-library.fakcloud.tech/api';
@@ -25,6 +26,35 @@ interface Voice {
   };
 }
 
+// Extract gender from description
+function extractGender(description: string): string {
+  const desc = description.toLowerCase();
+  if (desc.includes('female') || desc.includes('woman') || desc.includes('girl') || desc.includes('she ') || desc.includes('her ')) {
+    return 'Female';
+  }
+  if (desc.includes('male') || desc.includes('man ') || desc.includes('boy') || desc.includes('he ') || desc.includes('his ')) {
+    return 'Male';
+  }
+  return 'Unknown';
+}
+
+// Extract language/accent from description
+function extractLanguage(description: string): string {
+  const desc = description.toLowerCase();
+  const languages = [
+    'english', 'hindi', 'spanish', 'french', 'german', 'italian', 'portuguese', 
+    'russian', 'japanese', 'korean', 'chinese', 'arabic', 'turkish', 'dutch',
+    'polish', 'romanian', 'filipino', 'indonesian', 'thai', 'vietnamese',
+    'british', 'american', 'australian', 'indian', 'irish', 'scottish'
+  ];
+  for (const lang of languages) {
+    if (desc.includes(lang)) {
+      return lang.charAt(0).toUpperCase() + lang.slice(1);
+    }
+  }
+  return 'Other';
+}
+
 export default function ElevenLabsVoices() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,6 +62,8 @@ export default function ElevenLabsVoices() {
   const [currentPage, setCurrentPage] = useState(1);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: allVoices = [], isLoading, refetch, isFetching } = useQuery<Voice[]>({
@@ -49,6 +81,25 @@ export default function ElevenLabsVoices() {
     staleTime: 1000 * 60 * 10,
   });
 
+  // Extract unique genders and languages from descriptions
+  const uniqueGenders = useMemo(() => {
+    const genders = new Set<string>();
+    allVoices.forEach(v => {
+      const gender = extractGender(v.description || '');
+      if (gender !== 'Unknown') genders.add(gender);
+    });
+    return Array.from(genders).sort();
+  }, [allVoices]);
+
+  const uniqueLanguages = useMemo(() => {
+    const languages = new Set<string>();
+    allVoices.forEach(v => {
+      const lang = extractLanguage(v.description || '');
+      if (lang !== 'Other') languages.add(lang);
+    });
+    return Array.from(languages).sort();
+  }, [allVoices]);
+
   const filteredVoices = allVoices.filter((voice) => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -59,6 +110,18 @@ export default function ElevenLabsVoices() {
         return false;
       }
     }
+    if (genderFilter !== "all") {
+      const voiceGender = extractGender(voice.description || '');
+      if (voiceGender.toLowerCase() !== genderFilter.toLowerCase()) {
+        return false;
+      }
+    }
+    if (languageFilter !== "all") {
+      const voiceLang = extractLanguage(voice.description || '');
+      if (voiceLang.toLowerCase() !== languageFilter.toLowerCase()) {
+        return false;
+      }
+    }
     return true;
   });
 
@@ -66,9 +129,11 @@ export default function ElevenLabsVoices() {
   const startIndex = (currentPage - 1) * VOICES_PER_PAGE;
   const paginatedVoices = filteredVoices.slice(startIndex, startIndex + VOICES_PER_PAGE);
 
+  const hasActiveFilters = genderFilter !== "all" || languageFilter !== "all" || searchQuery !== "";
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, genderFilter, languageFilter]);
 
   const playPreview = useCallback((voice: Voice) => {
     if (playingVoiceId === voice.voice_id) {
@@ -109,9 +174,11 @@ export default function ElevenLabsVoices() {
     setSearchQuery(searchInput);
   };
 
-  const clearSearch = () => {
+  const clearFilters = () => {
     setSearchQuery("");
     setSearchInput("");
+    setGenderFilter("all");
+    setLanguageFilter("all");
   };
 
   return (
@@ -153,16 +220,44 @@ export default function ElevenLabsVoices() {
               </Button>
             </form>
 
-            <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex flex-wrap gap-4 items-center">
               <div className="flex items-center gap-2">
-                {searchQuery && (
-                  <Button variant="ghost" size="sm" onClick={clearSearch} className="text-red-500 hover:text-red-600" data-testid="button-clear-search">
-                    <X className="w-4 h-4 mr-1" />
-                    Clear Search
-                  </Button>
-                )}
+                <Filter className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filters:</span>
               </div>
-              <div className="text-sm text-gray-500">
+
+              <Select value={genderFilter} onValueChange={setGenderFilter}>
+                <SelectTrigger className="w-[140px]" data-testid="select-gender">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Genders</SelectItem>
+                  {uniqueGenders.map((gender) => (
+                    <SelectItem key={gender} value={gender.toLowerCase()}>{gender}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                <SelectTrigger className="w-[160px]" data-testid="select-language">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  {uniqueLanguages.map((language) => (
+                    <SelectItem key={language} value={language.toLowerCase()}>{language}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-500 hover:text-red-600" data-testid="button-clear-filters">
+                  <X className="w-4 h-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+
+              <div className="ml-auto text-sm text-gray-500">
                 Showing {filteredVoices.length.toLocaleString()} voices
               </div>
             </div>
