@@ -382,6 +382,7 @@ export default function UserPanelLayout({ children }: UserPanelLayoutProps) {
           {renderMenuItem({ id: 'text-to-speech-v2', title: 'Text to Voice V2', icon: Zap, path: '/text-to-speech-v2' })}
           {renderMenuItem({ id: 'voice-cloning', title: 'Voice Cloning', icon: Mic, path: '/voice-cloning' })}
           {renderMenuItem({ id: 'community-voices', title: 'Community Voices', icon: Users, path: '/community-voices' })}
+          {renderMenuItem({ id: 'elevenlabs-voices', title: 'ElevenLabs Voices', icon: AudioLines, path: '/elevenlabs-voices' })}
         </List>
 
         {session?.user?.isAdmin && (
