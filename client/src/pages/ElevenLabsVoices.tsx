@@ -78,19 +78,29 @@ export default function ElevenLabsVoices() {
   const [languageFilter, setLanguageFilter] = useState<string>("all");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const { data: allVoices = [], isLoading, refetch, isFetching } = useQuery<Voice[]>({
+  const { data: allVoices = [], isLoading, refetch, isFetching, error } = useQuery<Voice[]>({
     queryKey: ["elevenlabs-voices-all"],
     queryFn: async () => {
-      // Use "e" as search query since API requires non-empty query - "e" matches ~4800 voices
-      // Load all ~4800 voices
-      const response = await fetch(`${API_BASE_URL}/search?q=e&limit=5000`);
-      const json = await response.json();
-      if (json.success && json.data) {
-        return json.data;
+      try {
+        console.log("Fetching all voices from API...");
+        // Use "e" as search query since API requires non-empty query - "e" matches ~4800 voices
+        // Load all ~4800 voices
+        const response = await fetch(`${API_BASE_URL}/search?q=e&limit=5000`);
+        const json = await response.json();
+        console.log("API response:", json.meta);
+        if (json.success && json.data) {
+          console.log(`Loaded ${json.data.length} voices`);
+          return json.data;
+        }
+        console.error("API returned unsuccessful response:", json);
+        return [];
+      } catch (err) {
+        console.error("Failed to fetch voices:", err);
+        throw err;
       }
-      return [];
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0, // Always fetch fresh data
+    retry: 2,
   });
 
   // Extract unique genders and languages from descriptions
@@ -279,8 +289,21 @@ export default function ElevenLabsVoices() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-12 h-12 animate-spin text-purple-600 mb-4" />
-            <p className="text-gray-600 dark:text-gray-400 text-lg">Loading voices...</p>
+            <p className="text-gray-600 dark:text-gray-400 text-lg">Loading {isFetching ? '4800+' : ''} voices...</p>
+            <p className="text-sm text-gray-400 mt-2">This may take a few seconds</p>
           </div>
+        ) : error ? (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="py-16 text-center">
+              <Volume2 className="w-16 h-16 mx-auto text-red-300 mb-4" />
+              <h3 className="text-xl font-semibold text-red-600 mb-2">Failed to load voices</h3>
+              <p className="text-gray-500 mb-4">Please check your connection and try again</p>
+              <Button variant="outline" onClick={() => refetch()} data-testid="button-retry-load">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
         ) : paginatedVoices.length === 0 ? (
           <Card className="border-0 shadow-lg">
             <CardContent className="py-16 text-center">
