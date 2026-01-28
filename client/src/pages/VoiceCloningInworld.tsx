@@ -364,6 +364,14 @@ export default function VoiceCloningInworld() {
                       onEnded={handleAudioEnded}
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
+                      onError={(e) => {
+                        console.error("Audio error:", e);
+                        toast({
+                          title: "Audio Error",
+                          description: "Failed to load audio. Try generating again.",
+                          variant: "destructive",
+                        });
+                      }}
                       className="hidden"
                     />
                     
