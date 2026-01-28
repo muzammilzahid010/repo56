@@ -166,7 +166,7 @@ export default function DeepYTAnalyze() {
     <UserPanelLayout>
       <div className="container mx-auto p-6 max-w-6xl">
         {/* Animated Header & Search Section */}
-        <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[40vh] flex flex-col justify-center' : ''}`}>
+        <div className={`transition-all duration-700 ease-in-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[50vh] flex flex-col justify-center pt-10' : 'pt-0'}`}>
           {/* Header - Centered when not active */}
           <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'text-center mb-10' : 'mb-6'}`}>
             <div className={`${!isSearchActive && !hasResults && !loading ? 'text-center' : 'flex items-center gap-3'}`}>
