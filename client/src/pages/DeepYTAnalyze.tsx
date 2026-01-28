@@ -158,10 +158,6 @@ export default function DeepYTAnalyze() {
     setSearchData(data);
   };
 
-  const handleSearchFocus = () => {
-    setIsSearchActive(true);
-  };
-
   return (
     <UserPanelLayout>
       <div className="container mx-auto p-6 max-w-6xl">
@@ -198,8 +194,7 @@ export default function DeepYTAnalyze() {
                     <Input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && analyze()}
-                      onFocus={handleSearchFocus}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { setIsSearchActive(true); analyze(); } }}
                       placeholder="Paste Video URL, Channel Link (@handle), or Search keywords..."
                       className="pl-12 h-14 text-lg border-0 bg-muted/50 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/50"
                       data-testid="input-yt-analyze"
@@ -281,7 +276,7 @@ export default function DeepYTAnalyze() {
         {!loading && !hasResults && !isSearchActive && (
           <div className="py-8 mt-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => { setInput("https://youtube.com/watch?v="); handleSearchFocus(); }}>
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("https://youtube.com/watch?v=")}>
                 <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Play className="w-7 h-7 text-red-500" />
                 </div>
@@ -291,7 +286,7 @@ export default function DeepYTAnalyze() {
                 </p>
               </Card>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => { setInput("@"); handleSearchFocus(); }}>
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("@")}>
                 <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="w-7 h-7 text-purple-500" />
                 </div>
@@ -301,7 +296,7 @@ export default function DeepYTAnalyze() {
                 </p>
               </Card>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleSearchFocus()}>
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("")}>
                 <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="w-7 h-7 text-blue-500" />
                 </div>
