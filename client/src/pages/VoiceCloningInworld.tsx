@@ -135,6 +135,19 @@ export default function VoiceCloningInworld() {
   });
 
   const availableVoices = voicesData?.voices || [];
+
+  // Fetch ElevenLabs voices from database
+  const { data: elevenLabsData, isLoading: isLoadingElevenLabs } = useQuery<{ success: boolean; data: { voice_id: string; name: string; description?: string; preview_url?: string }[] }>({
+    queryKey: ['/api/elevenlabs-voices'],
+    queryFn: async () => {
+      const response = await fetch('/api/elevenlabs-voices', {
+        credentials: 'include'
+      });
+      return response.json();
+    },
+  });
+
+  const elevenLabsVoices = elevenLabsData?.data || [];
   
   // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
@@ -651,6 +664,24 @@ export default function VoiceCloningInworld() {
                           <div className="px-2 py-3 text-center text-muted-foreground text-sm">
                             No voices available for this language
                           </div>
+                        )}
+                        {elevenLabsVoices.length > 0 && (
+                          <>
+                            <div className="my-1 border-t" />
+                            <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
+                              ElevenLabs Library ({elevenLabsVoices.length})
+                            </div>
+                            {elevenLabsVoices.slice(0, 50).map((v) => (
+                              <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                            {elevenLabsVoices.length > 50 && (
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground text-center">
+                                +{elevenLabsVoices.length - 50} more voices in library...
+                              </div>
+                            )}
+                          </>
                         )}
                       </SelectContent>
                     </Select>
