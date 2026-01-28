@@ -4881,7 +4881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Convert LINEAR16 PCM to WAV by adding proper header
         const pcmData = Buffer.from(data.audioContent, 'base64');
-        const sampleRate = 24000; // Inworld uses 24kHz
+        const sampleRate = 48000; // Inworld uses 48kHz by default
         const numChannels = 1; // Mono
         const bitsPerSample = 16;
         
