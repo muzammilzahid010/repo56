@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink, Youtube, TrendingUp, Zap, BarChart3, Filter, Sparkles, ArrowRight } from "lucide-react";
+import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink, Youtube, TrendingUp, Zap, BarChart3, Filter, Sparkles, ArrowRight, Heart, MessageCircle, Film } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
@@ -742,90 +742,189 @@ function VideoResult({ data, onAnalyze }: { data: VideoData; onAnalyze: (q: stri
 
 function ChannelResult({ data, onAnalyze }: { data: ChannelData; onAnalyze: (q: string) => void }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Channel Header with Stats Bar */}
       <Card className="overflow-hidden">
-        {data.banner && (
-          <div className="h-40 bg-muted">
-            <img src={data.banner} alt="Banner" className="w-full h-full object-cover" />
-          </div>
-        )}
         <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            {data.avatar && (
-              <img src={data.avatar} alt={data.name} className="w-20 h-20 rounded-full border-4 border-background shadow-lg -mt-12" />
-            )}
-            <div className="flex-1">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold">{data.name}</h2>
-                  <p className="text-muted-foreground">{data.handle}</p>
+          <div className="flex items-center justify-between">
+            {/* Left: Avatar + Name */}
+            <div className="flex items-center gap-4">
+              {data.avatar ? (
+                <img src={data.avatar} alt={data.name} className="w-14 h-14 rounded-full border-2 border-border" />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-xl font-bold">
+                  {data.name?.charAt(0) || "?"}
                 </div>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">{data.scan_status}</Badge>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                    <Users className="w-3 h-3" /> Subscribers
-                  </p>
-                  <p className="text-lg font-bold">{data.subscribers || <span className="h-6 w-20 bg-muted rounded animate-pulse inline-block"></span>}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                    <Play className="w-3 h-3" /> Total Videos
-                  </p>
-                  <p className="text-lg font-bold">{data.total_videos || <span className="h-6 w-16 bg-muted rounded animate-pulse inline-block"></span>}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                    <Eye className="w-3 h-3" /> Total Views
-                  </p>
-                  <p className="text-lg font-bold">{data.total_views || <span className="h-6 w-24 bg-muted rounded animate-pulse inline-block"></span>}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                    <Calendar className="w-3 h-3" /> Joined
-                  </p>
-                  <p className="text-lg font-bold">{data.joined_date || <span className="h-6 w-20 bg-muted rounded animate-pulse inline-block"></span>}</p>
-                </div>
-              </div>
-
-              {data.description && (
-                <p className="text-muted-foreground text-sm line-clamp-3">{data.description}</p>
               )}
+              <div>
+                <h2 className="text-xl font-bold">{data.name}</h2>
+                <p className="text-sm text-primary">{data.subscribers} Subscribers</p>
+              </div>
+            </div>
+            
+            {/* Right: Stats */}
+            <div className="flex items-center gap-8">
+              <div className="text-center">
+                <div className="flex items-center gap-1 text-2xl font-bold">
+                  0% <Zap className="w-5 h-5 text-yellow-500" />
+                </div>
+                <p className="text-xs text-muted-foreground">Engagement Rate</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center gap-1 text-2xl font-bold">
+                  {data.total_views} <Heart className="w-5 h-5 text-pink-500" />
+                </div>
+                <p className="text-xs text-muted-foreground">Total Views</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center gap-1 text-2xl font-bold">
+                  {data.total_videos} <MessageCircle className="w-5 h-5 text-blue-500" />
+                </div>
+                <p className="text-xs text-muted-foreground">Total Videos</p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Analysis Section */}
+      <div>
+        <h3 className="text-xl font-bold text-center mb-6">Analysis</h3>
+        <div className="space-y-4">
+          {/* Content Row */}
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Film className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <span className="font-semibold">Content</span>
+                </div>
+                <div className="flex items-center gap-12">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{data.total_videos || "0"}</p>
+                    <p className="text-xs text-primary">Total Videos</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">--</p>
+                    <p className="text-xs text-primary">Avg Videos/Day</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Engagement Row */}
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <ThumbsUp className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <span className="font-semibold">Engagement</span>
+                </div>
+                <div className="flex items-center gap-12">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">--</p>
+                    <p className="text-xs text-primary">Total Engagement</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">--</p>
+                    <p className="text-xs text-primary">Avg. Engagement</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Views Row */}
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                    <Eye className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <span className="font-semibold">Views</span>
+                </div>
+                <div className="flex items-center gap-12">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{data.total_views || "0"}</p>
+                    <p className="text-xs text-primary">Total Views</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">--</p>
+                    <p className="text-xs text-primary">Avg. Views</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-4">*This analysis only takes into consideration data for the last 30 days.</p>
+      </div>
+
+      {/* Top Performing Posts */}
       {data.recent_videos && data.recent_videos.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Recent Videos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {data.recent_videos.map((v, i) => (
-                <div 
-                  key={i} 
-                  className="cursor-pointer group"
-                  onClick={() => onAnalyze(v.id)}
-                  data-testid={`channel-video-${i}`}
-                >
-                  <div className="aspect-video bg-muted rounded mb-2 overflow-hidden">
+        <div>
+          <h3 className="text-xl font-bold text-center mb-6">Top Performing Posts</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {data.recent_videos.slice(0, 3).map((v, i) => (
+              <Card 
+                key={i} 
+                className="cursor-pointer hover-elevate overflow-hidden"
+                onClick={() => onAnalyze(v.id)}
+                data-testid={`channel-video-${i}`}
+              >
+                <CardContent className="p-4">
+                  {/* Phone Frame Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {data.avatar ? (
+                        <img src={data.avatar} alt={data.name} className="w-6 h-6 rounded-full" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                          {data.name?.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-sm font-medium">{data.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">Video</Badge>
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  {/* Thumbnail */}
+                  <div className="aspect-[9/16] bg-muted rounded-lg mb-3 overflow-hidden">
                     <img 
                       src={v.thumbnail} 
                       alt={v.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                      className="w-full h-full object-cover"
                     />
                   </div>
-                  <p className="text-xs font-medium leading-tight line-clamp-2">{v.title}</p>
-                  <p className="text-xs text-muted-foreground">{v.views} • {v.published}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  
+                  {/* Description */}
+                  <p className="text-sm line-clamp-2 mb-3">
+                    {v.title} <span className="text-primary cursor-pointer">see more</span>
+                  </p>
+                  
+                  {/* Footer */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{v.published}</span>
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/20">{data.subscribers}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">Eng. Rate</span>
+                    <span className="text-xs font-medium">--</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
