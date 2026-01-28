@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
-import { Shield, LogOut, UserPlus, Home, Edit, Key, Calendar, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, Trash2, XOctagon, MessageCircle, Wrench, Users, Settings, DollarSign, History as HistoryIcon, FileText, Activity, ImageIcon, Copy, Check, Shuffle, Eraser, X, Save, Plus, Power, Zap, Download, Database, RotateCcw, Eye, HardDrive, Mic, Video, Upload, Loader2, Gift, ChevronDown, Search, Banknote } from "lucide-react";
+import { Shield, LogOut, UserPlus, Home, Edit, Key, Calendar, RefreshCw, TrendingUp, CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, Trash2, XOctagon, MessageCircle, Wrench, Users, Settings, DollarSign, History as HistoryIcon, FileText, Activity, ImageIcon, Copy, Check, Shuffle, Eraser, X, Save, Plus, Power, Zap, Download, Database, RotateCcw, Eye, HardDrive, Mic, Video, Upload, Loader2, Gift, ChevronDown, Search, Banknote, Sparkles } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const createUserSchema = z.object({
@@ -1439,6 +1439,10 @@ export default function Admin() {
             <TabsTrigger value="cartesia" className="text-[#6b7280] data-[state=active]:bg-[#374151] data-[state=active]:text-white" data-testid="tab-cartesia">
               <Mic className="w-4 h-4 mr-2" />
               Cartesia
+            </TabsTrigger>
+            <TabsTrigger value="inworld" className="text-[#6b7280] data-[state=active]:bg-[#374151] data-[state=active]:text-white" data-testid="tab-inworld">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Inworld
             </TabsTrigger>
             <TabsTrigger value="pricing" className="text-[#6b7280] data-[state=active]:bg-[#374151] data-[state=active]:text-white" data-testid="tab-pricing">
               <DollarSign className="w-4 h-4 mr-2" />
@@ -4456,6 +4460,10 @@ export default function Admin() {
 
           <TabsContent value="cartesia">
             <CartesiaTokensTab />
+          </TabsContent>
+
+          <TabsContent value="inworld">
+            <InworldTokensTab />
           </TabsContent>
 
           <TabsContent value="pricing">
@@ -8001,6 +8009,415 @@ function CartesiaTokensTab() {
                   <AlertDialogTitle className="text-[#1f2937]">Delete All Cartesia Tokens?</AlertDialogTitle>
                   <AlertDialogDescription className="text-[#6b7280]">
                     This will permanently delete all {tokens.length} Cartesia API tokens. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="border-[#e5e7eb]">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteAllTokensMutation.mutate()}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface InworldTokenData {
+  id: string;
+  apiKey: string;
+  label: string;
+  isActive: boolean;
+  charactersUsed: number;
+  charactersLimit: number;
+  errorCount: number;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+interface InworldTokenStats {
+  total: number;
+  active: number;
+  disabled: number;
+  totalCharactersUsed: number;
+  totalCharactersLimit: number;
+}
+
+function InworldTokensTab() {
+  const { toast } = useToast();
+  const [newLabel, setNewLabel] = useState("");
+  const [newApiKey, setNewApiKey] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showBulkAddDialog, setShowBulkAddDialog] = useState(false);
+  const [bulkKeys, setBulkKeys] = useState("");
+
+  const { data: tokensData, isLoading, refetch } = useQuery<InworldTokenData[]>({
+    queryKey: ["/api/admin/inworld-tokens"],
+  });
+
+  const { data: statsData, refetch: refetchStats } = useQuery<InworldTokenStats>({
+    queryKey: ["/api/admin/inworld-tokens/stats"],
+  });
+
+  const handleRefresh = () => {
+    refetch();
+    refetchStats();
+  };
+
+  const addTokenMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/inworld-tokens", {
+        apiKey: newApiKey,
+        label: newLabel,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Token Added", description: "Inworld API token has been added" });
+      setNewLabel("");
+      setNewApiKey("");
+      setShowAddDialog(false);
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to add token", variant: "destructive" });
+    },
+  });
+
+  const bulkAddMutation = useMutation({
+    mutationFn: async (keys: string[]) => {
+      const response = await apiRequest("POST", "/api/admin/inworld-tokens/bulk", { tokens: keys.join('\n') });
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({ 
+        title: "Bulk Add Complete", 
+        description: `Added ${data.added} tokens${data.failed > 0 ? `, ${data.failed} failed/duplicates` : ''}` 
+      });
+      setBulkKeys("");
+      setShowBulkAddDialog(false);
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to bulk add tokens", variant: "destructive" });
+    },
+  });
+
+  const handleBulkAdd = () => {
+    const keys = bulkKeys
+      .split('\n')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    
+    if (keys.length === 0) {
+      toast({ title: "Error", description: "No valid keys found", variant: "destructive" });
+      return;
+    }
+    
+    bulkAddMutation.mutate(keys);
+  };
+
+  const toggleTokenMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/admin/inworld-tokens/${id}`, { isActive });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Token Updated", description: "Token status has been updated" });
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update token", variant: "destructive" });
+    },
+  });
+
+  const deleteTokenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/admin/inworld-tokens/${id}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Token Deleted", description: "Inworld API token has been removed" });
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete token", variant: "destructive" });
+    },
+  });
+
+  const resetTokenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("POST", `/api/admin/inworld-tokens/${id}/reset`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Token Reset", description: "Token usage has been reset" });
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to reset token", variant: "destructive" });
+    },
+  });
+
+  const deleteAllTokensMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", "/api/admin/inworld-tokens");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "All Tokens Deleted", description: "All Inworld API tokens have been removed" });
+      handleRefresh();
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete all tokens", variant: "destructive" });
+    },
+  });
+
+  const tokens = tokensData || [];
+
+  return (
+    <Card className="shadow-sm bg-white border border-[#e5e7eb]">
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <CardTitle className="text-[#1f2937]">Inworld API Tokens</CardTitle>
+            {statsData && (
+              <div className="flex items-center gap-3 ml-4">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Active: {statsData.active}
+                </Badge>
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  Disabled: {statsData.disabled}
+                </Badge>
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  Used: {((statsData.totalCharactersUsed || 0) / 1000000).toFixed(2)}M / {((statsData.totalCharactersLimit || 0) / 1000000).toFixed(0)}M
+                </Badge>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRefresh()}
+              className="border-[#374151] text-[#374151]"
+              data-testid="button-refresh-inworld"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-purple-600 text-white hover:bg-purple-700" data-testid="button-add-inworld-token">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Token
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-white border-[#374151]">
+                <DialogHeader>
+                  <DialogTitle className="text-[#1f2937]">Add Inworld API Token</DialogTitle>
+                  <DialogDescription className="text-[#6b7280]">
+                    Add a new Inworld API key for Voice Cloning V2 (1M characters/key)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[#374151]">Label</Label>
+                    <Input
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      placeholder="e.g., Inworld Key 1"
+                      className="border-[#e5e7eb]"
+                      data-testid="input-inworld-label"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[#374151]">API Key</Label>
+                    <Input
+                      value={newApiKey}
+                      onChange={(e) => setNewApiKey(e.target.value)}
+                      placeholder="Enter Inworld/AIML API key"
+                      className="border-[#e5e7eb] font-mono"
+                      data-testid="input-inworld-apikey"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => addTokenMutation.mutate()}
+                    disabled={!newLabel || !newApiKey || addTokenMutation.isPending}
+                    className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                    data-testid="button-confirm-add-inworld"
+                  >
+                    {addTokenMutation.isPending ? "Adding..." : "Add Token"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={showBulkAddDialog} onOpenChange={setShowBulkAddDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="border-purple-600 text-purple-600" data-testid="button-bulk-add-inworld">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Bulk Add
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-white border-[#374151]">
+                <DialogHeader>
+                  <DialogTitle className="text-[#1f2937]">Bulk Add Inworld Tokens</DialogTitle>
+                  <DialogDescription className="text-[#6b7280]">
+                    Paste one API key per line. Optionally add label with comma: key,label
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    value={bulkKeys}
+                    onChange={(e) => setBulkKeys(e.target.value)}
+                    placeholder="api-key-1,My First Key&#10;api-key-2,My Second Key&#10;api-key-3"
+                    className="min-h-[200px] font-mono text-sm border-[#e5e7eb]"
+                    data-testid="textarea-bulk-inworld-keys"
+                  />
+                  <Button
+                    onClick={handleBulkAdd}
+                    disabled={!bulkKeys.trim() || bulkAddMutation.isPending}
+                    className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                    data-testid="button-confirm-bulk-inworld"
+                  >
+                    {bulkAddMutation.isPending ? "Adding..." : "Add All Tokens"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+          </div>
+        ) : tokens.length === 0 ? (
+          <div className="text-center py-8 text-[#6b7280]">
+            <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No Inworld API tokens configured.</p>
+            <p className="text-sm mt-2">Add tokens to enable Voice Cloning V2 (1M characters each).</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {tokens.map((token) => {
+              const usagePercent = token.charactersLimit > 0 
+                ? Math.min(100, (token.charactersUsed / token.charactersLimit) * 100) 
+                : 0;
+              const isNearLimit = usagePercent > 80;
+              const isOverLimit = usagePercent >= 100;
+              
+              return (
+                <div
+                  key={token.id}
+                  className={`flex items-center justify-between p-4 rounded-lg border ${
+                    !token.isActive ? 'bg-gray-50 border-gray-200' :
+                    isOverLimit ? 'bg-red-50 border-red-200' :
+                    isNearLimit ? 'bg-yellow-50 border-yellow-200' :
+                    'bg-white border-[#e5e7eb]'
+                  }`}
+                  data-testid={`inworld-token-${token.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-[#1f2937]">{token.label}</span>
+                      {!token.isActive && (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-600 text-xs">
+                          Disabled
+                        </Badge>
+                      )}
+                      {token.errorCount > 0 && (
+                        <Badge variant="outline" className="bg-red-100 text-red-600 text-xs">
+                          {token.errorCount} errors
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-[#6b7280] font-mono truncate">
+                      {token.apiKey.substring(0, 10)}...{token.apiKey.slice(-6)}
+                    </div>
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-xs text-[#6b7280] mb-1">
+                        <span>
+                          {(token.charactersUsed / 1000).toFixed(0)}K / {(token.charactersLimit / 1000000).toFixed(0)}M chars
+                        </span>
+                        <span>{usagePercent.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            isOverLimit ? 'bg-red-500' :
+                            isNearLimit ? 'bg-yellow-500' :
+                            'bg-purple-500'
+                          }`}
+                          style={{ width: `${Math.min(100, usagePercent)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => resetTokenMutation.mutate(token.id)}
+                      disabled={resetTokenMutation.isPending}
+                      className="text-blue-600 hover:text-blue-800"
+                      data-testid={`button-reset-inworld-${token.id}`}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                    <Switch
+                      checked={token.isActive}
+                      onCheckedChange={(checked) => toggleTokenMutation.mutate({ id: token.id, isActive: checked })}
+                      data-testid={`switch-inworld-${token.id}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteTokenMutation.mutate(token.id)}
+                      disabled={deleteTokenMutation.isPending}
+                      className="text-red-600 hover:text-red-800"
+                      data-testid={`button-delete-inworld-${token.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-6 pt-4 border-t border-[#e5e7eb]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[#6b7280]">
+              Each Inworld API key has 1 million character limit
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                  data-testid="button-delete-all-inworld"
+                  disabled={!tokens.length}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Keys
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-white">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-[#1f2937]">Delete All Inworld Tokens?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-[#6b7280]">
+                    This will permanently delete all {tokens.length} Inworld API tokens. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -4799,7 +4799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== INWORLD TTS ENDPOINTS ====================
 
-  // Generate TTS audio using Inworld AI
+  // Generate TTS audio using Inworld AI (with token rotation)
   app.post("/api/inworld-tts/generate", requireAuth, async (req, res) => {
     try {
       const { text, voice, model, language, speed, temperature } = req.body;
@@ -4808,15 +4808,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Text is required" });
       }
       
-      // Get API key from secrets
-      const apiKey = process.env.INWORLD_API_KEY || process.env.AIMLAPI_KEY;
+      const charCount = text.trim().length;
+      
+      // Get available token from database (least used, active, under limit)
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens)
+        .where(eq(inworldTokens.isActive, true))
+        .orderBy(inworldTokens.charactersUsed);
+      
+      // Find a token that has capacity
+      let selectedToken = tokens.find(t => (t.charactersUsed + charCount) <= t.charactersLimit);
+      
+      // Fallback to env variable if no database tokens
+      let apiKey = selectedToken?.apiKey || process.env.INWORLD_API_KEY || process.env.AIMLAPI_KEY;
+      
       if (!apiKey) {
         return res.status(500).json({ 
-          error: "Inworld API key not configured. Please add INWORLD_API_KEY or AIMLAPI_KEY to secrets." 
+          error: "No Inworld API tokens available. Add tokens in Admin Panel > Inworld tab." 
         });
       }
       
-      console.log(`[Inworld TTS] Generating audio for ${text.length} chars with voice: ${voice}, model: ${model}`);
+      console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}, model: ${model}${selectedToken ? `, token: ${selectedToken.label}` : ''}`);
       
       const response = await fetch("https://api.aimlapi.com/v1/tts", {
         method: "POST",
@@ -4837,12 +4849,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!response.ok) {
         const errorData = await response.text();
         console.error(`[Inworld TTS] API error: ${response.status} - ${errorData}`);
+        
+        // Update error count if using database token
+        if (selectedToken) {
+          await db.update(inworldTokens)
+            .set({ errorCount: (selectedToken.errorCount || 0) + 1 })
+            .where(eq(inworldTokens.id, selectedToken.id));
+        }
+        
         return res.status(response.status).json({ 
           error: `Inworld API error: ${response.statusText}` 
         });
       }
       
       const data = await response.json();
+      
+      // Update character usage if using database token
+      if (selectedToken) {
+        await db.update(inworldTokens)
+          .set({ 
+            charactersUsed: (selectedToken.charactersUsed || 0) + charCount,
+            lastUsedAt: new Date().toISOString()
+          })
+          .where(eq(inworldTokens.id, selectedToken.id));
+      }
       
       if (data.audio?.url) {
         console.log(`[Inworld TTS] Audio generated successfully`);
@@ -4862,6 +4892,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Inworld TTS] Error:", error);
       res.status(500).json({ error: error.message || "Failed to generate audio" });
+    }
+  });
+
+  // ==================== INWORLD API TOKENS (Admin Only) ====================
+
+  // Get all Inworld tokens
+  app.get("/api/admin/inworld-tokens", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens).orderBy(inworldTokens.createdAt);
+      res.json(tokens);
+    } catch (error) {
+      console.error("Error fetching Inworld tokens:", error);
+      res.status(500).json({ error: "Failed to fetch Inworld tokens" });
+    }
+  });
+
+  // Add single Inworld token
+  app.post("/api/admin/inworld-tokens", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { apiKey, label, charactersLimit } = req.body;
+      if (!apiKey || !label) {
+        return res.status(400).json({ error: "API key and label are required" });
+      }
+      const { inworldTokens } = await import("@shared/schema");
+      const [token] = await db.insert(inworldTokens).values({
+        apiKey,
+        label,
+        charactersLimit: charactersLimit || 1000000,
+      }).returning();
+      res.json(token);
+    } catch (error: any) {
+      console.error("Error adding Inworld token:", error);
+      if (error.message?.includes("duplicate") || error.code === "23505") {
+        return res.status(400).json({ error: "API key already exists" });
+      }
+      res.status(500).json({ error: "Failed to add Inworld token" });
+    }
+  });
+
+  // Bulk add Inworld tokens
+  app.post("/api/admin/inworld-tokens/bulk", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { tokens: tokensText, charactersLimit } = req.body;
+      if (!tokensText) {
+        return res.status(400).json({ error: "Tokens text is required" });
+      }
+      const { inworldTokens } = await import("@shared/schema");
+      const lines = tokensText.split("\n").filter((l: string) => l.trim());
+      const results = { added: 0, failed: 0, errors: [] as string[] };
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const parts = line.split(",").map((p: string) => p.trim());
+        const apiKey = parts[0];
+        const label = parts[1] || `Inworld Key ${i + 1}`;
+        
+        try {
+          await db.insert(inworldTokens).values({
+            apiKey,
+            label,
+            charactersLimit: charactersLimit || 1000000,
+          });
+          results.added++;
+        } catch (e: any) {
+          results.failed++;
+          results.errors.push(`Line ${i + 1}: ${e.message}`);
+        }
+      }
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error bulk adding Inworld tokens:", error);
+      res.status(500).json({ error: "Failed to bulk add Inworld tokens" });
+    }
+  });
+
+  // Update Inworld token
+  app.patch("/api/admin/inworld-tokens/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const { inworldTokens } = await import("@shared/schema");
+      const [token] = await db.update(inworldTokens)
+        .set(updates)
+        .where(eq(inworldTokens.id, id))
+        .returning();
+      if (!token) {
+        return res.status(404).json({ error: "Token not found" });
+      }
+      res.json(token);
+    } catch (error) {
+      console.error("Error updating Inworld token:", error);
+      res.status(500).json({ error: "Failed to update Inworld token" });
+    }
+  });
+
+  // Delete Inworld token
+  app.delete("/api/admin/inworld-tokens/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { inworldTokens } = await import("@shared/schema");
+      await db.delete(inworldTokens).where(eq(inworldTokens.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting Inworld token:", error);
+      res.status(500).json({ error: "Failed to delete Inworld token" });
+    }
+  });
+
+  // Delete all Inworld tokens
+  app.delete("/api/admin/inworld-tokens", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { inworldTokens } = await import("@shared/schema");
+      await db.delete(inworldTokens);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting all Inworld tokens:", error);
+      res.status(500).json({ error: "Failed to delete all Inworld tokens" });
+    }
+  });
+
+  // Reset all Inworld token usage
+  app.post("/api/admin/inworld-tokens/reset-usage", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { inworldTokens } = await import("@shared/schema");
+      await db.update(inworldTokens).set({ charactersUsed: 0, errorCount: 0 });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resetting Inworld token usage:", error);
+      res.status(500).json({ error: "Failed to reset token usage" });
+    }
+  });
+
+  // Reset single Inworld token usage
+  app.post("/api/admin/inworld-tokens/:id/reset", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { inworldTokens } = await import("@shared/schema");
+      await db.update(inworldTokens)
+        .set({ charactersUsed: 0, errorCount: 0 })
+        .where(eq(inworldTokens.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resetting Inworld token usage:", error);
+      res.status(500).json({ error: "Failed to reset token usage" });
+    }
+  });
+
+  // Get Inworld token stats
+  app.get("/api/admin/inworld-tokens/stats", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens);
+      const stats = {
+        total: tokens.length,
+        active: tokens.filter(t => t.isActive).length,
+        disabled: tokens.filter(t => !t.isActive).length,
+        totalCharactersUsed: tokens.reduce((sum, t) => sum + (t.charactersUsed || 0), 0),
+        totalCharactersLimit: tokens.reduce((sum, t) => sum + (t.charactersLimit || 1000000), 0),
+      };
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting Inworld token stats:", error);
+      res.status(500).json({ error: "Failed to get stats" });
     }
   });
 

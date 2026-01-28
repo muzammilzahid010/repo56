@@ -174,10 +174,13 @@ Preferred communication style: Simple, everyday language.
 - API endpoint: https://api.aimlapi.com/v1/tts
 - Models: TTS 1.5 Max (best), TTS 1.5 Mini (fastest), TTS 1 Max, TTS 1
 - 15 languages supported
-- Requires INWORLD_API_KEY or AIMLAPI_KEY in secrets
+- Admin Panel > Inworld tab for API token management
+- Token rotation: Uses least-used token with capacity
+- Each API key has 1 million character limit
 - Speed control: 0.5x to 1.5x
 - Temperature: Controls expressiveness/randomness
 - Emotional markers: [happy], [sad], [whisper], [cough], [sigh]
+- Database table: `inworld_tokens` for token storage and usage tracking
 
 ### External Dependencies
 

@@ -553,6 +553,42 @@ export type InsertCartesiaToken = z.infer<typeof insertCartesiaTokenSchema>;
 export type UpdateCartesiaToken = z.infer<typeof updateCartesiaTokenSchema>;
 export type BulkAddCartesiaTokens = z.infer<typeof bulkAddCartesiaTokensSchema>;
 
+// Inworld API Tokens for Voice Cloning V2 (Inworld TTS)
+export const inworldTokens = pgTable("inworld_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKey: text("api_key").notNull().unique(),
+  label: text("label").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  charactersUsed: integer("characters_used").notNull().default(0),
+  charactersLimit: integer("characters_limit").notNull().default(1000000),
+  errorCount: integer("error_count").notNull().default(0),
+  lastUsedAt: text("last_used_at"),
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+});
+
+export const insertInworldTokenSchema = createInsertSchema(inworldTokens).pick({
+  apiKey: true,
+  label: true,
+  charactersLimit: true,
+});
+
+export const updateInworldTokenSchema = z.object({
+  label: z.string().optional(),
+  isActive: z.boolean().optional(),
+  charactersUsed: z.number().int().min(0).optional(),
+  charactersLimit: z.number().int().min(1).optional(),
+  errorCount: z.number().int().min(0).optional(),
+});
+
+export const bulkAddInworldTokensSchema = z.object({
+  tokens: z.string().min(1, "Please enter at least one API key"),
+});
+
+export type InworldToken = typeof inworldTokens.$inferSelect;
+export type InsertInworldToken = z.infer<typeof insertInworldTokenSchema>;
+export type UpdateInworldToken = z.infer<typeof updateInworldTokenSchema>;
+export type BulkAddInworldTokens = z.infer<typeof bulkAddInworldTokensSchema>;
+
 // Top Voices for admin-curated voice presets
 export const topVoices = pgTable("top_voices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
