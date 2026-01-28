@@ -168,18 +168,18 @@ export default function DeepYTAnalyze() {
         {/* Animated Header & Search Section */}
         <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[40vh] flex flex-col justify-center' : ''}`}>
           {/* Header - Centered when not active */}
-          <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'text-center mb-8' : 'mb-6'}`}>
-            <div className={`inline-flex items-center gap-3 ${!isSearchActive && !hasResults && !loading ? 'justify-center w-full' : ''}`}>
-              <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-16 h-16' : 'w-10 h-10'}`}>
-                <Youtube className={`text-white transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-8 h-8' : 'w-5 h-5'}`} />
+          <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'text-center mb-10' : 'mb-6'}`}>
+            <div className={`inline-flex items-center gap-4 ${!isSearchActive && !hasResults && !loading ? 'justify-center w-full flex-col' : ''}`}>
+              <div className={`bg-gradient-to-br from-red-500 via-red-600 to-rose-600 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-red-500/30 ${!isSearchActive && !hasResults && !loading ? 'w-20 h-20' : 'w-10 h-10'}`}>
+                <Youtube className={`text-white transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-10 h-10' : 'w-5 h-5'}`} />
               </div>
-              <div>
-                <h1 className={`font-bold transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'text-4xl' : 'text-2xl'}`} data-testid="text-page-title">
+              <div className={`${!isSearchActive && !hasResults && !loading ? 'text-center' : ''}`}>
+                <h1 className={`font-bold transition-all duration-300 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text ${!isSearchActive && !hasResults && !loading ? 'text-5xl' : 'text-2xl'}`} data-testid="text-page-title">
                   Deep YT Search Analyze
                 </h1>
                 {(!isSearchActive && !hasResults && !loading) && (
-                  <p className="text-muted-foreground mt-1">
-                    Analyze YouTube videos, channels, and search for content intelligence
+                  <p className="text-muted-foreground mt-3 text-lg max-w-lg mx-auto">
+                    Powerful AI-driven YouTube intelligence for videos, channels & content discovery
                   </p>
                 )}
               </div>
