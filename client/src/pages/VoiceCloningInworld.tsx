@@ -624,13 +624,8 @@ export default function VoiceCloningInworld() {
                               Your Cloned Voices
                             </div>
                             {clonedVoices.map((v) => (
-                              <SelectItem key={v.voiceId} value={v.voiceId}>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-purple-600 font-medium">{v.displayName}</span>
-                                  <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-600 px-1.5 py-0.5 rounded-full">
-                                    Cloned
-                                  </span>
-                                </div>
+                              <SelectItem key={v.voiceId} value={v.voiceId} className="text-purple-600 font-medium">
+                                {v.displayName}
                               </SelectItem>
                             ))}
                             <div className="my-1 border-t" />
@@ -648,21 +643,12 @@ export default function VoiceCloningInworld() {
                           availableVoices.map((v) => {
                             const isCloned = clonedVoices.some(cv => cv.voiceId === v.voiceId || cv.displayName === v.displayName);
                             return (
-                              <SelectItem key={v.voiceId} value={v.voiceId}>
-                                <div className="flex items-center gap-2">
-                                  <span className={isCloned ? "text-purple-600 font-medium" : ""}>
-                                    {v.displayName || v.voiceId}
-                                  </span>
-                                  {isCloned ? (
-                                    <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-600 px-1.5 py-0.5 rounded-full">
-                                      Cloned
-                                    </span>
-                                  ) : v.gender && (
-                                    <span className="text-xs text-muted-foreground">
-                                      ({v.gender}{v.accent ? ` - ${v.accent}` : ''})
-                                    </span>
-                                  )}
-                                </div>
+                              <SelectItem 
+                                key={v.voiceId} 
+                                value={v.voiceId}
+                                className={isCloned ? "text-purple-600 font-medium" : ""}
+                              >
+                                {v.displayName || v.voiceId}
                               </SelectItem>
                             );
                           })
