@@ -40,6 +40,35 @@ const LANGUAGES = [
   { code: "ru", name: "Russian" },
 ];
 
+// ElevenLabs Official Default Voices
+const ELEVENLABS_OFFICIAL_VOICES = [
+  { voice_id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "Female" },
+  { voice_id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", gender: "Female" },
+  { voice_id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", gender: "Female" },
+  { voice_id: "ErXwobaYiN019PkySvjV", name: "Antoni", gender: "Male" },
+  { voice_id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", gender: "Female" },
+  { voice_id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", gender: "Male" },
+  { voice_id: "VR6AewLTigWG4xSOukaG", name: "Arnold", gender: "Male" },
+  { voice_id: "pNInz6obpgDQGcFmaJgB", name: "Adam", gender: "Male" },
+  { voice_id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", gender: "Male" },
+  { voice_id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "Male" },
+  { voice_id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", gender: "Female" },
+  { voice_id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", gender: "Female" },
+  { voice_id: "iP95p4xoKVk53GoZ742B", name: "Chris", gender: "Male" },
+  { voice_id: "nPczCjzI2devNBz1zQrb", name: "Brian", gender: "Male" },
+  { voice_id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "Male" },
+  { voice_id: "XrExE9yKIg1WjnnlVkGX", name: "Lily", gender: "Female" },
+  { voice_id: "pFZP5JQG7iQjIQuC4Bku", name: "Serena", gender: "Female" },
+  { voice_id: "bIHbv24MWmeRgasZH58o", name: "Will", gender: "Male" },
+  { voice_id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", gender: "Female" },
+  { voice_id: "cjVigY5qzO86Huf0OWal", name: "Eric", gender: "Male" },
+  { voice_id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura", gender: "Female" },
+  { voice_id: "IKne3meq5aSn9XLyUdCD", name: "Charlie", gender: "Male" },
+  { voice_id: "JBFqnCBsd6RMkjVDRZzb", name: "George", gender: "Male" },
+  { voice_id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam", gender: "Male" },
+  { voice_id: "XB0fDUnXU5powFXDhCwa", name: "Sarah", gender: "Female" },
+];
+
 interface GenerateResponse {
   success: boolean;
   audioUrl?: string;
@@ -136,18 +165,6 @@ export default function VoiceCloningInworld() {
 
   const availableVoices = voicesData?.voices || [];
 
-  // Fetch ElevenLabs voices from database
-  const { data: elevenLabsData, isLoading: isLoadingElevenLabs } = useQuery<{ success: boolean; data: { voice_id: string; name: string; description?: string; preview_url?: string }[] }>({
-    queryKey: ['/api/elevenlabs-voices'],
-    queryFn: async () => {
-      const response = await fetch('/api/elevenlabs-voices', {
-        credentials: 'include'
-      });
-      return response.json();
-    },
-  });
-
-  const elevenLabsVoices = elevenLabsData?.data || [];
   
   // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
@@ -644,6 +661,15 @@ export default function VoiceCloningInworld() {
                             <div className="my-1 border-t" />
                           </>
                         )}
+                        <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
+                          ElevenLabs Official ({ELEVENLABS_OFFICIAL_VOICES.length})
+                        </div>
+                        {ELEVENLABS_OFFICIAL_VOICES.map((v) => (
+                          <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
+                            {v.name} ({v.gender})
+                          </SelectItem>
+                        ))}
+                        <div className="my-1 border-t" />
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover z-10">
                           Preset Voices
                         </div>
@@ -664,24 +690,6 @@ export default function VoiceCloningInworld() {
                           <div className="px-2 py-3 text-center text-muted-foreground text-sm">
                             No voices available for this language
                           </div>
-                        )}
-                        {elevenLabsVoices.length > 0 && (
-                          <>
-                            <div className="my-1 border-t" />
-                            <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
-                              ElevenLabs Library ({elevenLabsVoices.length})
-                            </div>
-                            {elevenLabsVoices.slice(0, 50).map((v) => (
-                              <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
-                                {v.name}
-                              </SelectItem>
-                            ))}
-                            {elevenLabsVoices.length > 50 && (
-                              <div className="px-2 py-1.5 text-xs text-muted-foreground text-center">
-                                +{elevenLabsVoices.length - 50} more voices in library...
-                              </div>
-                            )}
-                          </>
                         )}
                       </SelectContent>
                     </Select>
