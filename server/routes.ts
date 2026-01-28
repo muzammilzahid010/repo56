@@ -4903,7 +4903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get API key from database tokens
       const { inworldTokens } = await import("@shared/schema");
-      const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isEnabled, true));
+      const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isActive, true));
       
       if (!tokens || tokens.length === 0) {
         return res.status(400).json({ error: "No Inworld API keys configured" });
