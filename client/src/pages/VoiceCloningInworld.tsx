@@ -88,9 +88,9 @@ export default function VoiceCloningInworld() {
     },
     onSuccess: (data) => {
       if (data.success && (data.audioUrl || data.audioBase64)) {
-        // Handle base64 audio from direct Inworld API
+        // Handle base64 audio from direct Inworld API (LINEAR16/WAV format)
         if (data.audioBase64) {
-          const audioDataUrl = `data:audio/mp3;base64,${data.audioBase64}`;
+          const audioDataUrl = `data:audio/wav;base64,${data.audioBase64}`;
           setGeneratedAudio(audioDataUrl);
         } else if (data.audioUrl) {
           setGeneratedAudio(data.audioUrl);

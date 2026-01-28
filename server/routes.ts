@@ -4841,7 +4841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           input: { text: text.trim() },
           voice: { name: voice || "Timothy" },
           audioConfig: {
-            audioEncoding: "MP3",
+            audioEncoding: "LINEAR16",
             speakingRate: speed || 1.0,
           }
         }),
