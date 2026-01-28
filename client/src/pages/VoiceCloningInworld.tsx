@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw, Upload, Mic, UserCircle } from "lucide-react";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
-interface InworldVoice {
+interface AIVoice {
   voiceId: string;
   displayName?: string;
   description?: string;
@@ -123,8 +123,8 @@ export default function VoiceCloningInworld() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Fetch voices from Inworld API based on language
-  const { data: voicesData, isLoading: isLoadingVoices } = useQuery<{ success: boolean; voices: InworldVoice[] }>({
+  // Fetch voices from API based on language
+  const { data: voicesData, isLoading: isLoadingVoices } = useQuery<{ success: boolean; voices: AIVoice[] }>({
     queryKey: ['/api/inworld-tts/voices', language],
     queryFn: async () => {
       const response = await fetch(`/api/inworld-tts/voices?language=${language}`, {
@@ -167,7 +167,7 @@ export default function VoiceCloningInworld() {
     },
     onSuccess: (data) => {
       if (data.success && (data.audioUrl || data.audioBase64)) {
-        // Handle base64 audio from direct Inworld API (MP3 format)
+        // Handle base64 audio (MP3 format)
         if (data.audioBase64) {
           try {
             // Convert base64 to binary and create Blob URL for better browser compatibility
@@ -178,10 +178,10 @@ export default function VoiceCloningInworld() {
             }
             const blob = new Blob([bytes], { type: 'audio/mpeg' });
             const blobUrl = URL.createObjectURL(blob);
-            console.log("[Inworld TTS] Blob URL created:", blobUrl);
+            console.log("[Voice AI] Audio ready:", blobUrl);
             setGeneratedAudio(blobUrl);
           } catch (e) {
-            console.error("[Inworld TTS] Failed to decode audio:", e);
+            console.error("[Voice AI] Failed to decode audio:", e);
             toast({
               title: "Audio Error", 
               description: "Failed to decode audio data",
@@ -322,7 +322,7 @@ export default function VoiceCloningInworld() {
     if (generatedAudio) {
       const a = document.createElement('a');
       a.href = generatedAudio;
-      a.download = `inworld-tts-${Date.now()}.mp3`;
+      a.download = `voice-audio-${Date.now()}.mp3`;
       a.click();
     }
   };
@@ -390,7 +390,7 @@ export default function VoiceCloningInworld() {
             <h1 className="text-3xl font-bold">Voice Cloning V2</h1>
           </div>
           <p className="text-muted-foreground">
-            Ultra-realistic text-to-speech powered by Inworld AI. Clone your voice or use preset voices.
+            Ultra-realistic text-to-speech with AI. Clone your voice or use preset voices.
           </p>
         </div>
 
@@ -819,7 +819,7 @@ export default function VoiceCloningInworld() {
                       
                       <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                         <Volume2 className="w-3 h-3" />
-                        <span>Generated with Inworld TTS</span>
+                        <span>Generated with AI Voice Engine</span>
                       </div>
                     </div>
                   </div>
@@ -842,7 +842,7 @@ export default function VoiceCloningInworld() {
               <CardContent className="pt-6">
                 <div className="text-center space-y-2">
                   <Sparkles className="w-8 h-8 mx-auto text-purple-500" />
-                  <h3 className="font-semibold">Inworld TTS</h3>
+                  <h3 className="font-semibold">AI Voice Engine</h3>
                   <p className="text-sm text-muted-foreground">
                     15 languages supported with ultra-low latency and natural expressiveness.
                   </p>
