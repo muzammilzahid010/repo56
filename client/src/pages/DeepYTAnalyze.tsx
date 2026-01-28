@@ -250,6 +250,86 @@ export default function DeepYTAnalyze() {
           </div>
         )}
 
+        {!loading && !videoData && !channelData && !searchData && (
+          <div className="py-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Play className="w-7 h-7 text-red-500" />
+                </div>
+                <h3 className="font-bold mb-2">Video Analysis</h3>
+                <p className="text-sm text-muted-foreground">
+                  Get monetization status, views, likes, audience retention heatmap & technical details
+                </p>
+              </Card>
+              
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-7 h-7 text-purple-500" />
+                </div>
+                <h3 className="font-bold mb-2">Channel Intelligence</h3>
+                <p className="text-sm text-muted-foreground">
+                  Analyze subscribers, total videos, views, recent uploads & channel growth metrics
+                </p>
+              </Card>
+              
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-7 h-7 text-blue-500" />
+                </div>
+                <h3 className="font-bold mb-2">SERP Search</h3>
+                <p className="text-sm text-muted-foreground">
+                  Search YouTube with filters for relevance, date, views, type & duration
+                </p>
+              </Card>
+            </div>
+
+            <Card className="bg-muted/30 border-dashed">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-lg font-bold mb-4">How to Use</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                    <div>
+                      <p className="font-medium">Paste Video URL</p>
+                      <p className="text-sm text-muted-foreground">youtube.com/watch?v=... for deep video analysis</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                    <div>
+                      <p className="font-medium">Paste Channel URL</p>
+                      <p className="text-sm text-muted-foreground">@ChannelName or youtube.com/c/... for channel stats</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                    <div>
+                      <p className="font-medium">Enter Keywords</p>
+                      <p className="text-sm text-muted-foreground">Type any search term to discover trending content</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-muted-foreground mb-3">Try these examples:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setInput("@MrBeast"); analyze("@MrBeast"); }} data-testid="example-mrbeast">
+                  @MrBeast
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setInput("trending music 2026"); analyze("trending music 2026"); }} data-testid="example-trending">
+                  trending music 2026
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => { setInput("how to make money online"); analyze("how to make money online"); }} data-testid="example-money">
+                  how to make money online
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {videoData && <VideoResult data={videoData} onAnalyze={analyze} />}
         {channelData && <ChannelResult data={channelData} onAnalyze={analyze} />}
         {searchData && <SearchResults data={searchData} onAnalyze={analyze} />}
