@@ -126,11 +126,17 @@ export default function DeepYTAnalyze() {
     }
   };
 
-  const handleVideo = async (url: string) => {
+  const handleVideo = async (urlOrId: string) => {
+    // Convert video ID to full URL if needed
+    let videoUrl = urlOrId;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) {
+      videoUrl = `https://www.youtube.com/watch?v=${urlOrId}`;
+    }
+    
     const res = await fetch(`${API_BASE}/video`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({ url: videoUrl })
     });
     const data = await res.json();
     setVideoData(data);
