@@ -3588,43 +3588,83 @@ export default function Admin() {
                         ElevenLabs API key for fetching official voices with preview URLs
                       </FormDescription>
                       <FormMessage />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={async () => {
-                          try {
-                            const response = await fetch('/api/admin/elevenlabs-voices/sync', {
-                              method: 'POST',
-                              credentials: 'include',
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                              toast({
-                                title: "Voices Synced",
-                                description: `Added ${data.added} voices, updated ${data.updated}`,
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const apiKey = appSettingsForm.getValues("elevenlabsApiKey");
+                              const response = await fetch('/api/admin/app-settings', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ elevenlabsApiKey: apiKey }),
                               });
-                            } else {
+                              const data = await response.json();
+                              if (data.success) {
+                                toast({
+                                  title: "API Key Saved",
+                                  description: "ElevenLabs API key saved successfully",
+                                });
+                              } else {
+                                toast({
+                                  title: "Save Failed",
+                                  description: data.error || "Failed to save API key",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
                               toast({
-                                title: "Sync Failed",
-                                description: data.error || "Failed to sync voices",
+                                title: "Error",
+                                description: "Failed to save API key",
                                 variant: "destructive",
                               });
                             }
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to sync voices",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                        data-testid="button-sync-elevenlabs"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Sync Voices from API
-                      </Button>
+                          }}
+                          data-testid="button-save-elevenlabs"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Save API Key
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/admin/elevenlabs-voices/sync', {
+                                method: 'POST',
+                                credentials: 'include',
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                toast({
+                                  title: "Voices Synced",
+                                  description: `Added ${data.added} voices, updated ${data.updated}`,
+                                });
+                              } else {
+                                toast({
+                                  title: "Sync Failed",
+                                  description: data.error || "Failed to sync voices",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to sync voices",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          data-testid="button-sync-elevenlabs"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Sync Voices
+                        </Button>
+                      </div>
                     </FormItem>
                   )}
                 />
