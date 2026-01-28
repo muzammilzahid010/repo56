@@ -170,17 +170,15 @@ Preferred communication style: Simple, everyday language.
 - processReferralReward() automatically credits referrer when referred user upgrades to paid plan
 
 **Voice Cloning V2 (Inworld TTS)**:
-- Uses Inworld AI TTS via AI/ML API gateway
-- API endpoint: https://api.aimlapi.com/v1/tts
-- Models: TTS 1.5 Max (best), TTS 1.5 Mini (fastest), TTS 1 Max, TTS 1
-- 15 languages supported
+- Uses **Direct Inworld AI TTS API** (platform.inworld.ai)
+- API endpoint: https://api.inworld.ai/tts/v1alpha/text:synthesize-sync
+- Authentication: Basic auth with Base64 key from Inworld Studio
 - Admin Panel > Inworld tab for API token management
 - Token rotation: Uses least-used token with capacity
 - Each API key has 1 million character limit
 - Speed control: 0.5x to 1.5x
-- Temperature: Controls expressiveness/randomness
-- Emotional markers: [happy], [sad], [whisper], [cough], [sigh]
 - Database table: `inworld_tokens` for token storage and usage tracking
+- Returns base64 audio (converted to data URL in frontend)
 
 ### External Dependencies
 

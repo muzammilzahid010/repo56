@@ -48,6 +48,8 @@ const MODELS = [
 interface GenerateResponse {
   success: boolean;
   audioUrl?: string;
+  audioBase64?: string;
+  audioFormat?: string;
   error?: string;
 }
 
@@ -85,8 +87,14 @@ export default function VoiceCloningInworld() {
       return response.json() as Promise<GenerateResponse>;
     },
     onSuccess: (data) => {
-      if (data.success && data.audioUrl) {
-        setGeneratedAudio(data.audioUrl);
+      if (data.success && (data.audioUrl || data.audioBase64)) {
+        // Handle base64 audio from direct Inworld API
+        if (data.audioBase64) {
+          const audioDataUrl = `data:audio/mp3;base64,${data.audioBase64}`;
+          setGeneratedAudio(audioDataUrl);
+        } else if (data.audioUrl) {
+          setGeneratedAudio(data.audioUrl);
+        }
         toast({
           title: "Audio Generated",
           description: "Your audio is ready to play!",

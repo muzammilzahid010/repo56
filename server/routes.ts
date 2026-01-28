@@ -4799,7 +4799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== INWORLD TTS ENDPOINTS ====================
 
-  // Generate TTS audio using Inworld AI (with token rotation)
+  // Generate TTS audio using Direct Inworld AI API (with token rotation)
   app.post("/api/inworld-tts/generate", requireAuth, async (req, res) => {
     try {
       const { text, voice, model, language, speed, temperature } = req.body;
@@ -4820,29 +4820,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let selectedToken = tokens.find(t => (t.charactersUsed + charCount) <= t.charactersLimit);
       
       // Fallback to env variable if no database tokens
-      let apiKey = selectedToken?.apiKey || process.env.INWORLD_API_KEY || process.env.AIMLAPI_KEY;
+      let apiKey = selectedToken?.apiKey || process.env.INWORLD_API_KEY;
       
       if (!apiKey) {
         return res.status(500).json({ 
-          error: "No Inworld API tokens available. Add tokens in Admin Panel > Inworld tab." 
+          error: "No Inworld API tokens available. Add Base64 keys in Admin Panel > Inworld tab." 
         });
       }
       
-      console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}, model: ${model}${selectedToken ? `, token: ${selectedToken.label}` : ''}`);
+      console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}${selectedToken ? `, token: ${selectedToken.label}` : ''}`);
       
-      const response = await fetch("https://api.aimlapi.com/v1/tts", {
+      // Direct Inworld API - synthesize-sync endpoint
+      const response = await fetch("https://api.inworld.ai/tts/v1alpha/text:synthesize-sync", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Basic ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: model || "inworld/tts-1.5-max",
-          text: text.trim(),
-          voice: voice || "Timothy",
-          language: language || "en",
-          speed: speed || 1.0,
-          temperature: temperature || 0.7,
+          input: { text: text.trim() },
+          voice: { name: voice || "Timothy" },
+          audioConfig: {
+            audioEncoding: "MP3",
+            speakingRate: speed || 1.0,
+          }
         }),
       });
       
@@ -4874,16 +4875,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(inworldTokens.id, selectedToken.id));
       }
       
-      if (data.audio?.url) {
+      // Direct Inworld API returns audioContent as base64
+      if (data.audioContent) {
         console.log(`[Inworld TTS] Audio generated successfully`);
+        // Return base64 audio data
         res.json({ 
           success: true, 
-          audioUrl: data.audio.url 
-        });
-      } else if (data.url) {
-        res.json({ 
-          success: true, 
-          audioUrl: data.url 
+          audioBase64: data.audioContent,
+          audioFormat: "mp3"
         });
       } else {
         console.error("[Inworld TTS] Unexpected response format:", data);
