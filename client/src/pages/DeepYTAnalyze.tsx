@@ -751,25 +751,25 @@ function ChannelResult({ data, onAnalyze }: { data: ChannelData; onAnalyze: (q: 
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                     <Users className="w-3 h-3" /> Subscribers
                   </p>
-                  <p className="text-lg font-bold">{data.subscribers}</p>
+                  <p className="text-lg font-bold">{data.subscribers || <span className="h-6 w-20 bg-muted rounded animate-pulse inline-block"></span>}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                     <Play className="w-3 h-3" /> Total Videos
                   </p>
-                  <p className="text-lg font-bold">{data.total_videos}</p>
+                  <p className="text-lg font-bold">{data.total_videos || <span className="h-6 w-16 bg-muted rounded animate-pulse inline-block"></span>}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                     <Eye className="w-3 h-3" /> Total Views
                   </p>
-                  <p className="text-lg font-bold">{data.total_views}</p>
+                  <p className="text-lg font-bold">{data.total_views || <span className="h-6 w-24 bg-muted rounded animate-pulse inline-block"></span>}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                     <Calendar className="w-3 h-3" /> Joined
                   </p>
-                  <p className="text-lg font-bold">{data.joined_date}</p>
+                  <p className="text-lg font-bold">{data.joined_date || <span className="h-6 w-20 bg-muted rounded animate-pulse inline-block"></span>}</p>
                 </div>
               </div>
 
