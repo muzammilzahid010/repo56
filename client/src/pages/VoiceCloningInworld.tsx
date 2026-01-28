@@ -89,10 +89,25 @@ export default function VoiceCloningInworld() {
       if (data.success && (data.audioUrl || data.audioBase64)) {
         // Handle base64 audio from direct Inworld API (MP3 format)
         if (data.audioBase64) {
-          // Use proper MIME type for MP3 - "audio/mpeg" not "audio/mp3"
-          const audioDataUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
-          console.log("[Inworld TTS] Audio data URL created, length:", audioDataUrl.length);
-          setGeneratedAudio(audioDataUrl);
+          try {
+            // Convert base64 to binary and create Blob URL for better browser compatibility
+            const binaryString = atob(data.audioBase64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/mpeg' });
+            const blobUrl = URL.createObjectURL(blob);
+            console.log("[Inworld TTS] Blob URL created:", blobUrl);
+            setGeneratedAudio(blobUrl);
+          } catch (e) {
+            console.error("[Inworld TTS] Failed to decode audio:", e);
+            toast({
+              title: "Audio Error", 
+              description: "Failed to decode audio data",
+              variant: "destructive",
+            });
+          }
         } else if (data.audioUrl) {
           setGeneratedAudio(data.audioUrl);
         }
