@@ -40,10 +40,6 @@ const LANGUAGES = [
   { code: "ru", name: "Russian" },
 ];
 
-const MODELS = [
-  { id: "inworld/tts-1.5-mini", name: "TTS 1.5 Mini", description: "Fast & efficient" },
-];
-
 interface GenerateResponse {
   success: boolean;
   audioUrl?: string;
@@ -93,7 +89,6 @@ export default function VoiceCloningInworld() {
   
   const [text, setText] = useState("");
   const [voice, setVoice] = useState(voiceFromUrl || "Timothy");
-  const [model, setModel] = useState("inworld/tts-1.5-mini");
   const [language, setLanguage] = useState("en");
   
   // Set voice from URL parameter on initial load
@@ -687,25 +682,6 @@ export default function VoiceCloningInworld() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Model</Label>
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger data-testid="select-model">
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MODELS.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          <div className="flex flex-col">
-                            <span>{m.name}</span>
-                            <span className="text-xs text-muted-foreground">{m.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
@@ -859,8 +835,7 @@ export default function VoiceCloningInworld() {
                 <p><strong>Emotional Markers:</strong> Use [happy], [sad], [whisper], [cough], [sigh] in your text for expressive speech.</p>
                 <p><strong>Speed:</strong> 0.5x is slower, 1.5x is faster. 1.0x is normal speed.</p>
                 <p><strong>Temperature:</strong> Higher values = more expressive/random. Lower = more consistent.</p>
-                <p><strong>Model Choice:</strong> Use TTS 1.5 Max for best quality, Mini for speed.</p>
-              </CardContent>
+                              </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20">
