@@ -160,7 +160,50 @@ export default function DeepYTAnalyze() {
 
   return (
     <UserPanelLayout>
-      <div className="container mx-auto p-6 max-w-6xl">
+      <div className="container mx-auto p-6 max-w-6xl relative">
+        {/* Decorative Background Elements - Only show when not active */}
+        {!isSearchActive && !hasResults && !loading && (
+          <>
+            {/* Left side decorations */}
+            <div className="absolute left-0 top-20 hidden lg:block">
+              <div className="w-32 h-32 bg-gradient-to-br from-red-100 to-rose-50 rounded-full blur-3xl opacity-60"></div>
+              <div className="mt-8 ml-4">
+                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm">
+                  <Play className="w-4 h-4" />
+                  <span>Videos</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm mt-2">
+                  <Users className="w-4 h-4" />
+                  <span>Channels</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm mt-2">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Right side decorations */}
+            <div className="absolute right-0 top-20 hidden lg:block text-right">
+              <div className="w-32 h-32 bg-gradient-to-bl from-purple-100 to-blue-50 rounded-full blur-3xl opacity-60 ml-auto"></div>
+              <div className="mt-8 mr-4">
+                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm">
+                  <span>Trending</span>
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm mt-2">
+                  <span>Insights</span>
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm mt-2">
+                  <span>Monetization</span>
+                  <Zap className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+        
         {/* Animated Header & Search Section */}
         <div className={`transition-all duration-700 ease-in-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[50vh] flex flex-col justify-center pt-10' : 'pt-0'}`}>
           {/* Header - Centered when not active */}
