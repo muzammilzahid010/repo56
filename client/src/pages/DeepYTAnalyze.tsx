@@ -158,9 +158,9 @@ export default function DeepYTAnalyze() {
       subscribers: main.Subscribers || "",
       total_videos: main.VideoCount || "",
       total_views: main.TotalViews || "",
-      description: desc.FullDescription || "",
+      description: desc.FullDescription !== "N/A" ? desc.FullDescription : "",
       avatar: main.LogoURL_Largest || "",
-      banner: main.BannerURL_Largest || "",
+      banner: main.BannerURL_Largest !== "N/A" ? main.BannerURL_Largest : "",
       joined_date: main.JoinedDate?.replace("Joined ", "") || "",
       country: main.Country || "",
       recent_videos: []
