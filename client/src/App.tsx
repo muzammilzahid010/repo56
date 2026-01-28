@@ -34,6 +34,7 @@ import VoiceCloningInworld from "@/pages/VoiceCloningInworld";
 import Affiliate from "@/pages/Affiliate";
 import UGCVideos from "@/pages/UGCVideos";
 import ElevenLabsVoices from "@/pages/ElevenLabsVoices";
+import DeepYTAnalyze from "@/pages/DeepYTAnalyze";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/affiliate" component={Affiliate} />
       <Route path="/ugc-videos" component={UGCVideos} />
       <Route path="/elevenlabs-voices" component={ElevenLabsVoices} />
+      <Route path="/deep-yt-analyze" component={DeepYTAnalyze} />
       <Route component={NotFound} />
     </Switch>
   );
