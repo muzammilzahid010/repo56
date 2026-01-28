@@ -575,6 +575,17 @@ function ChannelResult({ data, onAnalyze }: { data: ChannelData; onAnalyze: (q: 
   );
 }
 
+// Helper to safely render values that might be objects with label/numeric keys
+function safeRender(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'object') {
+    if (val.label) return String(val.label);
+    if (val.text) return String(val.text);
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
+
 function SearchResults({ data, onAnalyze }: { data: SearchResult; onAnalyze: (q: string) => void }) {
   return (
     <div className="space-y-4">
@@ -591,23 +602,23 @@ function SearchResults({ data, onAnalyze }: { data: SearchResult; onAnalyze: (q:
             <CardContent className="p-4">
               <div className="aspect-video bg-muted rounded mb-3 overflow-hidden relative">
                 <img 
-                  src={item.thumbnail} 
-                  alt={item.title}
+                  src={safeRender(item.thumbnail)}
+                  alt={safeRender(item.title)}
                   className="w-full h-full object-cover"
                 />
                 {item.duration && (
-                  <Badge variant="secondary" className="absolute bottom-2 right-2">{item.duration}</Badge>
+                  <Badge variant="secondary" className="absolute bottom-2 right-2">{safeRender(item.duration)}</Badge>
                 )}
-                <Badge variant="outline" className="absolute top-2 left-2 bg-background">{item.type}</Badge>
+                <Badge variant="outline" className="absolute top-2 left-2 bg-background">{safeRender(item.type)}</Badge>
               </div>
-              <h3 className="font-medium text-sm line-clamp-2 mb-1">{item.title}</h3>
+              <h3 className="font-medium text-sm line-clamp-2 mb-1">{safeRender(item.title)}</h3>
               {item.channel && (
-                <p className="text-xs text-muted-foreground">{item.channel.name}</p>
+                <p className="text-xs text-muted-foreground">{safeRender(item.channel?.name)}</p>
               )}
               <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                {item.views && <span>{item.views}</span>}
-                {item.published && <span>• {item.published}</span>}
-                {item.subscribers && <span>{item.subscribers} subscribers</span>}
+                {item.views && <span>{safeRender(item.views)}</span>}
+                {item.published && <span>• {safeRender(item.published)}</span>}
+                {item.subscribers && <span>{safeRender(item.subscribers)} subscribers</span>}
               </div>
             </CardContent>
           </Card>
