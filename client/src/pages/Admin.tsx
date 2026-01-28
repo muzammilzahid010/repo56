@@ -8270,14 +8270,14 @@ function InworldTokensTab() {
                 <DialogHeader>
                   <DialogTitle className="text-[#1f2937]">Bulk Add Inworld Tokens</DialogTitle>
                   <DialogDescription className="text-[#6b7280]">
-                    Paste one API key per line. Optionally add label with comma: key,label
+                    Paste one API key per line (labels auto-generated)
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Textarea
                     value={bulkKeys}
                     onChange={(e) => setBulkKeys(e.target.value)}
-                    placeholder="api-key-1,My First Key&#10;api-key-2,My Second Key&#10;api-key-3"
+                    placeholder="paste-api-key-1-here&#10;paste-api-key-2-here&#10;paste-api-key-3-here"
                     className="min-h-[200px] font-mono text-sm border-[#e5e7eb]"
                     data-testid="textarea-bulk-inworld-keys"
                   />
