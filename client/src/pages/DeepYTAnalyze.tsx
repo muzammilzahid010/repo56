@@ -165,39 +165,69 @@ export default function DeepYTAnalyze() {
         {!isSearchActive && !hasResults && !loading && (
           <>
             {/* Left side decorations */}
-            <div className="absolute left-0 top-20 hidden lg:block">
-              <div className="w-32 h-32 bg-gradient-to-br from-red-100 to-rose-50 rounded-full blur-3xl opacity-60"></div>
-              <div className="mt-8 ml-4">
-                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm">
-                  <Play className="w-4 h-4" />
-                  <span>Videos</span>
+            <div className="absolute -left-10 top-10 hidden xl:block">
+              <div className="w-48 h-48 bg-gradient-to-br from-red-200 to-rose-100 rounded-full blur-3xl opacity-50 animate-pulse"></div>
+              <div className="mt-4 ml-16 space-y-4">
+                <div className="flex items-center gap-3 text-muted-foreground/60 animate-[fadeIn_1s_ease-in-out]" style={{animation: 'pulse 3s infinite'}}>
+                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                    <Play className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground/70">Videos</p>
+                    <p className="text-xs">Deep analysis</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm mt-2">
-                  <Users className="w-4 h-4" />
-                  <span>Channels</span>
+                <div className="flex items-center gap-3 text-muted-foreground/60" style={{animation: 'pulse 3s infinite 0.5s'}}>
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground/70">Channels</p>
+                    <p className="text-xs">Growth metrics</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground/40 text-sm mt-2">
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Analytics</span>
+                <div className="flex items-center gap-3 text-muted-foreground/60" style={{animation: 'pulse 3s infinite 1s'}}>
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground/70">Analytics</p>
+                    <p className="text-xs">Performance data</p>
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* Right side decorations */}
-            <div className="absolute right-0 top-20 hidden lg:block text-right">
-              <div className="w-32 h-32 bg-gradient-to-bl from-purple-100 to-blue-50 rounded-full blur-3xl opacity-60 ml-auto"></div>
-              <div className="mt-8 mr-4">
-                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm">
-                  <span>Trending</span>
-                  <TrendingUp className="w-4 h-4" />
+            <div className="absolute -right-10 top-10 hidden xl:block text-right">
+              <div className="w-48 h-48 bg-gradient-to-bl from-purple-200 to-blue-100 rounded-full blur-3xl opacity-50 animate-pulse ml-auto"></div>
+              <div className="mt-4 mr-16 space-y-4">
+                <div className="flex items-center justify-end gap-3 text-muted-foreground/60" style={{animation: 'pulse 3s infinite 0.3s'}}>
+                  <div>
+                    <p className="font-medium text-foreground/70">Trending</p>
+                    <p className="text-xs">Popular content</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-orange-500" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm mt-2">
-                  <span>Insights</span>
-                  <Eye className="w-4 h-4" />
+                <div className="flex items-center justify-end gap-3 text-muted-foreground/60" style={{animation: 'pulse 3s infinite 0.8s'}}>
+                  <div>
+                    <p className="font-medium text-foreground/70">Insights</p>
+                    <p className="text-xs">Viewer behavior</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <Eye className="w-5 h-5 text-green-500" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-end gap-2 text-muted-foreground/40 text-sm mt-2">
-                  <span>Monetization</span>
-                  <Zap className="w-4 h-4" />
+                <div className="flex items-center justify-end gap-3 text-muted-foreground/60" style={{animation: 'pulse 3s infinite 1.3s'}}>
+                  <div>
+                    <p className="font-medium text-foreground/70">Monetization</p>
+                    <p className="text-xs">Revenue check</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-yellow-600" />
+                  </div>
                 </div>
               </div>
             </div>
