@@ -86,7 +86,10 @@ export default function DeepYTAnalyze() {
   const [sortBy, setSortBy] = useState("relevance");
   const [filterType, setFilterType] = useState("all");
   const [filterDuration, setFilterDuration] = useState("any");
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const { toast } = useToast();
+
+  const hasResults = videoData || channelData || searchData;
 
   const clearResults = () => {
     setVideoData(null);
@@ -155,91 +158,115 @@ export default function DeepYTAnalyze() {
     setSearchData(data);
   };
 
+  const handleSearchFocus = () => {
+    setIsSearchActive(true);
+  };
+
   return (
     <UserPanelLayout>
       <div className="container mx-auto p-6 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-page-title">
-            <Youtube className="h-8 w-8 text-red-500" />
-            Deep YT Search Analyze
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Analyze YouTube videos, channels, and search for content intelligence
-          </p>
-        </div>
-
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4 mb-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && analyze()}
-                  placeholder="Paste Video URL, Channel Link (@handle), or Search keywords..."
-                  className="pl-10 h-12 text-base"
-                  data-testid="input-yt-analyze"
-                />
+        {/* Animated Header & Search Section */}
+        <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[40vh] flex flex-col justify-center' : ''}`}>
+          {/* Header - Centered when not active */}
+          <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'text-center mb-8' : 'mb-6'}`}>
+            <div className={`inline-flex items-center gap-3 ${!isSearchActive && !hasResults && !loading ? 'justify-center w-full' : ''}`}>
+              <div className={`bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-16 h-16' : 'w-10 h-10'}`}>
+                <Youtube className={`text-white transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-8 h-8' : 'w-5 h-5'}`} />
               </div>
-              <Button 
-                onClick={() => analyze()} 
-                disabled={loading}
-                className="h-12 px-8"
-                data-testid="button-analyze"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Analyze
-                  </>
+              <div>
+                <h1 className={`font-bold transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'text-4xl' : 'text-2xl'}`} data-testid="text-page-title">
+                  Deep YT Search Analyze
+                </h1>
+                {(!isSearchActive && !hasResults && !loading) && (
+                  <p className="text-muted-foreground mt-1">
+                    Analyze YouTube videos, channels, and search for content intelligence
+                  </p>
                 )}
-              </Button>
+              </div>
             </div>
+          </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40" data-testid="select-sort">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="date">Upload Date</SelectItem>
-                  <SelectItem value="views">View Count</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Professional Search Bar */}
+          <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'max-w-2xl mx-auto w-full' : ''}`}>
+            <div className="relative group">
+              <div className={`absolute inset-0 bg-gradient-to-r from-red-500/20 via-purple-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSearchActive || hasResults || loading ? 'hidden' : ''}`}></div>
+              <div className={`relative bg-background border-2 rounded-xl shadow-lg transition-all duration-300 ${isSearchActive || hasResults || loading ? 'border-border' : 'border-transparent hover:border-primary/30'}`}>
+                <div className="flex flex-col lg:flex-row gap-3 p-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && analyze()}
+                      onFocus={handleSearchFocus}
+                      placeholder="Paste Video URL, Channel Link (@handle), or Search keywords..."
+                      className="pl-12 h-14 text-lg border-0 bg-muted/50 rounded-lg focus-visible:ring-2 focus-visible:ring-primary/50"
+                      data-testid="input-yt-analyze"
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => { setIsSearchActive(true); analyze(); }} 
+                    disabled={loading}
+                    className="h-14 px-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-semibold text-base shadow-lg shadow-red-500/25"
+                    data-testid="button-analyze"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                      <>
+                        <Zap className="w-5 h-5 mr-2" />
+                        Analyze
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-40" data-testid="select-type">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="video">Videos Only</SelectItem>
-                  <SelectItem value="channel">Channels Only</SelectItem>
-                  <SelectItem value="playlist">Playlists</SelectItem>
-                </SelectContent>
-              </Select>
+                {/* Filters - Show only when active or has results */}
+                <div className={`overflow-hidden transition-all duration-300 ${isSearchActive || hasResults || loading ? 'max-h-24 opacity-100 px-4 pb-4' : 'max-h-0 opacity-0'}`}>
+                  <div className="flex flex-wrap gap-3 pt-2 border-t">
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-36 h-9" data-testid="select-sort">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="relevance">Relevance</SelectItem>
+                        <SelectItem value="date">Upload Date</SelectItem>
+                        <SelectItem value="views">View Count</SelectItem>
+                        <SelectItem value="rating">Rating</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-              <Select value={filterDuration} onValueChange={setFilterDuration}>
-                <SelectTrigger className="w-40" data-testid="select-duration">
-                  <SelectValue placeholder="Duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Duration</SelectItem>
-                  <SelectItem value="short">Short (&lt; 4m)</SelectItem>
-                  <SelectItem value="long">Long (&gt; 20m)</SelectItem>
-                </SelectContent>
-              </Select>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="w-36 h-9" data-testid="select-type">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="video">Videos Only</SelectItem>
+                        <SelectItem value="channel">Channels Only</SelectItem>
+                        <SelectItem value="playlist">Playlists</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={filterDuration} onValueChange={setFilterDuration}>
+                      <SelectTrigger className="w-36 h-9" data-testid="select-duration">
+                        <SelectValue placeholder="Duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any Duration</SelectItem>
+                        <SelectItem value="short">Short (&lt; 4m)</SelectItem>
+                        <SelectItem value="long">Long (&gt; 20m)</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <span className="text-xs text-muted-foreground flex items-center gap-2 ml-auto">
+                      <span className="w-2 h-2 bg-green-500 rounded-full inline-block animate-pulse"></span>
+                      Auto Detection Active
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <span className="text-xs text-muted-foreground mt-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full inline-block"></span>
-              Auto Detection: Link → Deep Scan | Keywords → SERP Intelligence
-            </span>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {loading && (
           <div className="py-20 text-center">
@@ -250,10 +277,10 @@ export default function DeepYTAnalyze() {
           </div>
         )}
 
-        {!loading && !videoData && !channelData && !searchData && (
-          <div className="py-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+        {!loading && !hasResults && !isSearchActive && (
+          <div className="py-8 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => { setInput("https://youtube.com/watch?v="); handleSearchFocus(); }}>
                 <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Play className="w-7 h-7 text-red-500" />
                 </div>
@@ -263,7 +290,7 @@ export default function DeepYTAnalyze() {
                 </p>
               </Card>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => { setInput("@"); handleSearchFocus(); }}>
                 <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="w-7 h-7 text-purple-500" />
                 </div>
@@ -273,7 +300,7 @@ export default function DeepYTAnalyze() {
                 </p>
               </Card>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleSearchFocus()}>
                 <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Search className="w-7 h-7 text-blue-500" />
                 </div>
@@ -285,48 +312,48 @@ export default function DeepYTAnalyze() {
             </div>
 
             <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-8 text-center">
-                <h3 className="text-lg font-bold mb-4">How to Use</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+              <CardContent className="p-6 text-center">
+                <h3 className="text-base font-bold mb-4">Quick Start</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left text-sm">
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</div>
                     <div>
                       <p className="font-medium">Paste Video URL</p>
-                      <p className="text-sm text-muted-foreground">youtube.com/watch?v=... for deep video analysis</p>
+                      <p className="text-xs text-muted-foreground">youtube.com/watch?v=...</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</div>
                     <div>
                       <p className="font-medium">Paste Channel URL</p>
-                      <p className="text-sm text-muted-foreground">@ChannelName or youtube.com/c/... for channel stats</p>
+                      <p className="text-xs text-muted-foreground">@ChannelName or /c/...</p>
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</div>
                     <div>
                       <p className="font-medium">Enter Keywords</p>
-                      <p className="text-sm text-muted-foreground">Type any search term to discover trending content</p>
+                      <p className="text-xs text-muted-foreground">Search for content</p>
                     </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Quick Examples:</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("@MrBeast"); analyze("@MrBeast"); }} data-testid="example-mrbeast">
+                      @MrBeast
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("trending music 2026"); analyze("trending music 2026"); }} data-testid="example-trending">
+                      trending music 2026
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("how to make money"); analyze("how to make money"); }} data-testid="example-money">
+                      how to make money
+                    </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            <div className="mt-8 text-center">
-              <p className="text-sm text-muted-foreground mb-3">Try these examples:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => { setInput("@MrBeast"); analyze("@MrBeast"); }} data-testid="example-mrbeast">
-                  @MrBeast
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => { setInput("trending music 2026"); analyze("trending music 2026"); }} data-testid="example-trending">
-                  trending music 2026
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => { setInput("how to make money online"); analyze("how to make money online"); }} data-testid="example-money">
-                  how to make money online
-                </Button>
-              </div>
-            </div>
           </div>
         )}
 
