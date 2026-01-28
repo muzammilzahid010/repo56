@@ -4797,6 +4797,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== INWORLD TTS ENDPOINTS ====================
+
+  // Generate TTS audio using Inworld AI
+  app.post("/api/inworld-tts/generate", requireAuth, async (req, res) => {
+    try {
+      const { text, voice, model, language, speed, temperature } = req.body;
+      
+      if (!text?.trim()) {
+        return res.status(400).json({ error: "Text is required" });
+      }
+      
+      // Get API key from secrets
+      const apiKey = process.env.INWORLD_API_KEY || process.env.AIMLAPI_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ 
+          error: "Inworld API key not configured. Please add INWORLD_API_KEY or AIMLAPI_KEY to secrets." 
+        });
+      }
+      
+      console.log(`[Inworld TTS] Generating audio for ${text.length} chars with voice: ${voice}, model: ${model}`);
+      
+      const response = await fetch("https://api.aimlapi.com/v1/tts", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model || "inworld/tts-1.5-max",
+          text: text.trim(),
+          voice: voice || "Timothy",
+          language: language || "en",
+          speed: speed || 1.0,
+          temperature: temperature || 0.7,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`[Inworld TTS] API error: ${response.status} - ${errorData}`);
+        return res.status(response.status).json({ 
+          error: `Inworld API error: ${response.statusText}` 
+        });
+      }
+      
+      const data = await response.json();
+      
+      if (data.audio?.url) {
+        console.log(`[Inworld TTS] Audio generated successfully`);
+        res.json({ 
+          success: true, 
+          audioUrl: data.audio.url 
+        });
+      } else if (data.url) {
+        res.json({ 
+          success: true, 
+          audioUrl: data.url 
+        });
+      } else {
+        console.error("[Inworld TTS] Unexpected response format:", data);
+        res.status(500).json({ error: "Unexpected API response format" });
+      }
+    } catch (error: any) {
+      console.error("[Inworld TTS] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate audio" });
+    }
+  });
+
   // ==================== TOP VOICES ENDPOINTS ====================
   
   // Get all top voices (for users) - only active ones

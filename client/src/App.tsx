@@ -30,6 +30,7 @@ import TopVoices from "@/pages/TopVoices";
 import CommunityVoices from "@/pages/CommunityVoices";
 import TextToSpeechV2 from "@/pages/TextToSpeechV2";
 import VoiceCloningV2 from "@/pages/VoiceCloningV2";
+import VoiceCloningInworld from "@/pages/VoiceCloningInworld";
 import Affiliate from "@/pages/Affiliate";
 import UGCVideos from "@/pages/UGCVideos";
 import ElevenLabsVoices from "@/pages/ElevenLabsVoices";
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/community-voices" component={CommunityVoices} />
       <Route path="/text-to-speech-v2" component={TextToSpeechV2} />
       <Route path="/voice-cloning-v2" component={VoiceCloningV2} />
+      <Route path="/voice-cloning-inworld" component={VoiceCloningInworld} />
       <Route path="/affiliate" component={Affiliate} />
       <Route path="/ugc-videos" component={UGCVideos} />
       <Route path="/elevenlabs-voices" component={ElevenLabsVoices} />

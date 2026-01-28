@@ -169,6 +169,16 @@ Preferred communication style: Simple, everyday language.
 - Admin controls in Admin panel > Affiliate tab for reward settings and UID-based activation
 - processReferralReward() automatically credits referrer when referred user upgrades to paid plan
 
+**Voice Cloning V2 (Inworld TTS)**:
+- Uses Inworld AI TTS via AI/ML API gateway
+- API endpoint: https://api.aimlapi.com/v1/tts
+- Models: TTS 1.5 Max (best), TTS 1.5 Mini (fastest), TTS 1 Max, TTS 1
+- 15 languages supported
+- Requires INWORLD_API_KEY or AIMLAPI_KEY in secrets
+- Speed control: 0.5x to 1.5x
+- Temperature: Controls expressiveness/randomness
+- Emotional markers: [happy], [sad], [whisper], [cough], [sigh]
+
 ### External Dependencies
 
 **AI Services**:

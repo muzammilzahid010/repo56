@@ -380,7 +380,8 @@ export default function UserPanelLayout({ children }: UserPanelLayoutProps) {
         </Typography>
         <List sx={{ p: 0, mt: 0.5 }}>
           {renderMenuItem({ id: 'text-to-speech-v2', title: 'Text to Voice V2', icon: Zap, path: '/text-to-speech-v2' })}
-          {renderMenuItem({ id: 'voice-cloning', title: 'Voice Cloning', icon: Mic, path: '/voice-cloning' })}
+          {renderMenuItem({ id: 'voice-cloning', title: 'Voice Cloning V1', icon: Mic, path: '/voice-cloning' })}
+          {renderMenuItem({ id: 'voice-cloning-inworld', title: 'Voice Cloning V2', icon: Sparkles, path: '/voice-cloning-inworld' })}
           {renderMenuItem({ id: 'community-voices', title: 'Community Voices', icon: Users, path: '/community-voices' })}
           {renderMenuItem({ id: 'elevenlabs-voices', title: 'ElevenLabs Voices', icon: AudioLines, path: '/elevenlabs-voices' })}
         </List>
