@@ -40,19 +40,12 @@ const LANGUAGES = [
   { code: "ru", name: "Russian" },
 ];
 
-// ElevenLabs Official Default Voices with verified preview URLs
-const ELEVENLABS_OFFICIAL_VOICES = [
-  { voice_id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/b4928a68-c03b-411f-8533-3d5c299fd451.mp3" },
-  { voice_id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/AZnzlk1XvdvUeBnXmlld/69c5373f-0dc2-4efd-9232-a0140182c0a9.mp3" },
-  { voice_id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/EXAVITQu4vr4xnSDxMaL/992b478c-c602-46fd-83ab-e086e3f92eb5.mp3" },
-  { voice_id: "ErXwobaYiN019PkySvjV", name: "Antoni", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/ErXwobaYiN019PkySvjV/38d8f8f0-1122-4333-b323-0b87478d506a.mp3" },
-  { voice_id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/MF3mGyEYCl7XYWbV9V6O/d8539e4e-e05f-499c-9916-facd95d2ca83.mp3" },
-  { voice_id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/TxGEqnHWrfWFTfGW9XjX/c6431f82-8283-4a7a-9bdf-8e92e2e03560.mp3" },
-  { voice_id: "VR6AewLTigWG4xSOukaG", name: "Arnold", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/VR6AewLTigWG4xSOukaG/66e83dc9-b20a-4056-a591-04ecc8b27a9f.mp3" },
-  { voice_id: "pNInz6obpgDQGcFmaJgB", name: "Adam", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/pNInz6obpgDQGcFmaJgB/e0b45450-78db-49b9-aaa4-d5358a6871bd.mp3" },
-  { voice_id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/yoZ06aMxZJJ28mfd3POQ/1c4d417c-ba80-4de8-874a-a1c57987ea63.mp3" },
-  { voice_id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/onwK4e9ZLuTAKqWW03F9/e0b45450-78db-49b9-aaa4-d5358a6871bd.mp3" },
-];
+// ElevenLabs voice type for dynamic fetching
+interface ElevenLabsVoice {
+  voice_id: string;
+  name: string;
+  preview_url: string;
+}
 
 interface GenerateResponse {
   success: boolean;
@@ -150,6 +143,18 @@ export default function VoiceCloningInworld() {
 
   const availableVoices = voicesData?.voices || [];
 
+  // Fetch ElevenLabs official voices with preview URLs
+  const { data: elevenlabsData } = useQuery<{ success: boolean; voices: ElevenLabsVoice[] }>({
+    queryKey: ['/api/elevenlabs-voices/official'],
+    queryFn: async () => {
+      const response = await fetch('/api/elevenlabs-voices/official', {
+        credentials: 'include'
+      });
+      return response.json();
+    },
+  });
+
+  const elevenlabsVoices = elevenlabsData?.voices || [];
   
   // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
@@ -175,7 +180,7 @@ export default function VoiceCloningInworld() {
       // If ElevenLabs voice selected, clone it first using preview audio
       if (voice.startsWith("elevenlabs:")) {
         const elVoiceId = voice.replace("elevenlabs:", "");
-        const elVoice = ELEVENLABS_OFFICIAL_VOICES.find(v => v.voice_id === elVoiceId);
+        const elVoice = elevenlabsVoices.find(v => v.voice_id === elVoiceId);
         
         if (elVoice && elVoice.preview_url) {
           // Check if already cloned
@@ -691,14 +696,18 @@ export default function VoiceCloningInworld() {
                             <div className="my-1 border-t" />
                           </>
                         )}
-                        <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
-                          ElevenLabs Official ({ELEVENLABS_OFFICIAL_VOICES.length})
-                        </div>
-                        {ELEVENLABS_OFFICIAL_VOICES.map((v) => (
-                          <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
-                            {v.name} ({v.gender})
-                          </SelectItem>
-                        ))}
+                        {elevenlabsVoices.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
+                              ElevenLabs Official ({elevenlabsVoices.length})
+                            </div>
+                            {elevenlabsVoices.map((v) => (
+                              <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
                         <div className="my-1 border-t" />
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover z-10">
                           Preset Voices

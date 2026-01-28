@@ -3316,26 +3316,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin - Sync voices from external API to database
+  // Admin - Sync voices from ElevenLabs API to database
   app.post("/api/admin/elevenlabs-voices/sync", requireAdmin, async (req, res) => {
     try {
-      console.log('[ElevenLabs Sync] Starting sync from external API...');
+      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs API...');
       
-      // Fetch from external API
-      const response = await fetch('https://voice-library.fakcloud.tech/api/search?q=e&limit=5000');
-      const json = await response.json();
+      // Get API key from settings
+      const settings = await storage.getAppSettings();
+      const apiKey = settings?.elevenlabsApiKey;
       
-      if (!json.success || !json.data) {
-        return res.status(500).json({ success: false, error: 'Failed to fetch from external API' });
+      if (!apiKey) {
+        return res.status(400).json({ success: false, error: 'ElevenLabs API key not configured. Add it in Admin > Settings.' });
       }
       
-      console.log(`[ElevenLabs Sync] Fetched ${json.data.length} voices from API`);
+      // Fetch from ElevenLabs official API
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: {
+          'xi-api-key': apiKey,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ElevenLabs Sync] API error:', errorText);
+        return res.status(response.status).json({ success: false, error: 'ElevenLabs API error: ' + errorText });
+      }
+      
+      const json = await response.json();
+      
+      if (!json.voices) {
+        return res.status(500).json({ success: false, error: 'Invalid response from ElevenLabs API' });
+      }
+      
+      console.log(`[ElevenLabs Sync] Fetched ${json.voices.length} voices from ElevenLabs API`);
       
       // Transform and sync to database
-      const voicesToSync = json.data.map((v: any) => ({
+      const voicesToSync = json.voices.map((v: any) => ({
         voiceId: v.voice_id,
         name: v.name,
-        description: v.description || null,
+        description: v.labels?.description || v.description || null,
         previewUrl: v.preview_url || null,
       }));
       
@@ -3345,7 +3364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
-        message: `Synced ${json.data.length} voices`,
+        message: `Synced ${json.voices.length} voices from ElevenLabs`,
         added: result.added,
         updated: result.updated,
       });
@@ -3355,6 +3374,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         error: error instanceof Error ? error.message : 'Sync failed' 
       });
+    }
+  });
+  
+  // Get ElevenLabs voices with preview URLs (for Voice AI auto-clone feature)
+  app.get("/api/elevenlabs-voices/official", requireAuth, async (req, res) => {
+    try {
+      // First try to get from local database
+      const voices = await storage.getAllElevenlabsVoices();
+      
+      if (voices && voices.length > 0) {
+        // Return voices with preview URLs
+        const voicesWithPreviews = voices
+          .filter(v => v.previewUrl)
+          .map(v => ({
+            voice_id: v.voiceId,
+            name: v.name,
+            preview_url: v.previewUrl,
+          }));
+        return res.json({ success: true, voices: voicesWithPreviews });
+      }
+      
+      // If no voices in database, try to fetch from ElevenLabs API
+      const settings = await storage.getAppSettings();
+      const apiKey = settings?.elevenlabsApiKey;
+      
+      if (!apiKey) {
+        return res.json({ success: true, voices: [] });
+      }
+      
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': apiKey },
+      });
+      
+      if (!response.ok) {
+        return res.json({ success: true, voices: [] });
+      }
+      
+      const json = await response.json();
+      const officialVoices = json.voices
+        ?.filter((v: any) => v.preview_url)
+        .map((v: any) => ({
+          voice_id: v.voice_id,
+          name: v.name,
+          preview_url: v.preview_url,
+        })) || [];
+      
+      res.json({ success: true, voices: officialVoices });
+    } catch (error) {
+      console.error('[ElevenLabs Official] Error:', error);
+      res.json({ success: true, voices: [] });
     }
   });
 

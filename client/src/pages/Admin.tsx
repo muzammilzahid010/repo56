@@ -79,6 +79,7 @@ const appSettingsSchema = z.object({
   whatsappUrl: z.string().url("Please enter a valid URL"),
   scriptApiKey: z.string().optional(),
   geminiApiKey: z.string().optional(),
+  elevenlabsApiKey: z.string().optional(),
   cloudinaryCloudName: z.string().min(1, "Cloudinary cloud name is required"),
   cloudinaryUploadPreset: z.string().min(1, "Cloudinary upload preset is required"),
   enableVideoMerge: z.boolean().optional(),
@@ -416,6 +417,7 @@ export default function Admin() {
       whatsappUrl: "",
       scriptApiKey: "",
       geminiApiKey: "",
+      elevenlabsApiKey: "",
       cloudinaryCloudName: "dfk0nvgff",
       cloudinaryUploadPreset: "demo123",
       enableVideoMerge: true,
@@ -448,6 +450,7 @@ export default function Admin() {
         whatsappUrl: appSettingsData.settings.whatsappUrl,
         scriptApiKey: appSettingsData.settings.scriptApiKey || "",
         geminiApiKey: appSettingsData.settings.geminiApiKey || "",
+        elevenlabsApiKey: appSettingsData.settings.elevenlabsApiKey || "",
         cloudinaryCloudName: appSettingsData.settings.cloudinaryCloudName || "dfk0nvgff",
         cloudinaryUploadPreset: appSettingsData.settings.cloudinaryUploadPreset || "demo123",
         enableVideoMerge: appSettingsData.settings.enableVideoMerge ?? true,
@@ -3557,6 +3560,32 @@ export default function Admin() {
                       </FormControl>
                       <FormDescription className="text-[#6b7280]">
                         Google Gemini API key for Script to Frames feature (converts scripts to image prompts)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={appSettingsForm.control}
+                  name="elevenlabsApiKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[#374151] flex items-center gap-2">
+                        <Key className="w-4 h-4" />
+                        ElevenLabs API Key
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="password"
+                          placeholder="sk_..."
+                          className="bg-gray-50 text-[#1f2937] border-[#e5e7eb] font-mono"
+                          data-testid="input-elevenlabs-api-key"
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[#6b7280]">
+                        ElevenLabs API key for fetching official voices with preview URLs
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

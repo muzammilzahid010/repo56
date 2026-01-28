@@ -229,6 +229,8 @@ export const appSettings = pgTable("app_settings", {
   googleLabsCookie: text("google_labs_cookie"),
   // Whisk Bearer Token for UGC video generation
   whiskBearerToken: text("whisk_bearer_token"),
+  // ElevenLabs API Key for fetching official voices
+  elevenlabsApiKey: text("elevenlabs_api_key"),
   updatedAt: text("updated_at").notNull().default(sql`now()::text`),
 });
 
@@ -248,6 +250,7 @@ export const updateAppSettingsSchema = z.object({
   storageMethod: z.enum(["cloudinary", "google_drive", "cloudinary_with_fallback", "direct_to_user", "local_disk"]).optional(),
   googleLabsCookie: z.string().optional(),
   whiskBearerToken: z.string().optional(),
+  elevenlabsApiKey: z.string().optional(),
 });
 
 export type AppSettings = typeof appSettings.$inferSelect;
