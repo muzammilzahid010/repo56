@@ -158,7 +158,6 @@ export default function VoiceCloningInworld() {
       const response = await apiRequest("POST", "/api/voice-ai/generate", {
         text,
         voice,
-        model,
         language,
         speed: speed[0],
         temperature: temperature[0],
