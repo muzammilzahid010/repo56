@@ -4864,12 +4864,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update character usage if using database token
       if (selectedToken) {
+        const newCharCount = (selectedToken.charactersUsed || 0) + charCount;
         await db.update(inworldTokens)
           .set({ 
-            charactersUsed: (selectedToken.charactersUsed || 0) + charCount,
+            charactersUsed: newCharCount,
             lastUsedAt: new Date().toISOString()
           })
           .where(eq(inworldTokens.id, selectedToken.id));
+        console.log(`[Inworld TTS] Character usage updated: ${selectedToken.label} now has ${newCharCount} chars used (added ${charCount})`);
+      } else {
+        console.log(`[Inworld TTS] No database token selected, using env key - character count not tracked`);
       }
       
       // Direct Inworld API returns audioContent as base64 MP3
