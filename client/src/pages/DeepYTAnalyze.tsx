@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import UserPanelLayout from "@/layouts/UserPanelLayout";
 
 const API_BASE = "https://youtube.fakcloud.tech";
 
@@ -155,15 +156,16 @@ export default function DeepYTAnalyze() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-            <span className="text-black">DEEP YT</span>
-            <span className="text-gray-400"> SEARCH ANALYZE</span>
-          </h1>
-          <p className="text-sm text-gray-500 uppercase tracking-widest">Global Intelligence System</p>
-        </div>
+    <UserPanelLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-extrabold tracking-tight mb-2">
+              <span className="text-black">DEEP YT</span>
+              <span className="text-gray-400"> SEARCH ANALYZE</span>
+            </h1>
+            <p className="text-sm text-gray-500 uppercase tracking-widest">Global Intelligence System</p>
+          </div>
 
         <Card className="mb-8 border-2 border-black shadow-lg">
           <CardContent className="p-6">
@@ -229,20 +231,21 @@ export default function DeepYTAnalyze() {
           </CardContent>
         </Card>
 
-        {loading && (
-          <div className="py-20 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-black" />
-            <p className="font-mono text-sm tracking-widest uppercase animate-pulse">
-              Establishing Connection to YouTube Edge Nodes...
-            </p>
-          </div>
-        )}
+          {loading && (
+            <div className="py-20 text-center">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-black" />
+              <p className="font-mono text-sm tracking-widest uppercase animate-pulse">
+                Establishing Connection to YouTube Edge Nodes...
+              </p>
+            </div>
+          )}
 
-        {videoData && <VideoResult data={videoData} onAnalyze={analyze} />}
-        {channelData && <ChannelResult data={channelData} onAnalyze={analyze} />}
-        {searchData && <SearchResults data={searchData} onAnalyze={analyze} />}
+          {videoData && <VideoResult data={videoData} onAnalyze={analyze} />}
+          {channelData && <ChannelResult data={channelData} onAnalyze={analyze} />}
+          {searchData && <SearchResults data={searchData} onAnalyze={analyze} />}
+        </div>
       </div>
-    </div>
+    </UserPanelLayout>
   );
 }
 
