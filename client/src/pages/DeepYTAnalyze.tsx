@@ -143,13 +143,30 @@ export default function DeepYTAnalyze() {
   };
 
   const handleChannel = async (url: string) => {
-    const res = await fetch(`${API_BASE}/channel`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
-    });
-    const data = await res.json();
-    setChannelData(data);
+    const res = await fetch(`${API_BASE}/channel?url=${encodeURIComponent(url)}`);
+    const raw = await res.json();
+    
+    // Map API response to our ChannelData format
+    const main = raw.MainChannelDetails || {};
+    const desc = raw.DescriptionAndBusiness || {};
+    
+    const mapped: ChannelData = {
+      scan_status: "Completed",
+      channelId: main.ChannelID || "",
+      name: main.Name || "",
+      handle: main.Handle || "",
+      subscribers: main.Subscribers || "",
+      total_videos: main.VideoCount || "",
+      total_views: main.TotalViews || "",
+      description: desc.FullDescription || "",
+      avatar: main.LogoURL_Largest || "",
+      banner: main.BannerURL_Largest || "",
+      joined_date: main.JoinedDate?.replace("Joined ", "") || "",
+      country: main.Country || "",
+      recent_videos: []
+    };
+    
+    setChannelData(mapped);
   };
 
   const handleSearch = async (q: string) => {
