@@ -89,8 +89,9 @@ export default function VoiceCloningInworld() {
       if (data.success && (data.audioUrl || data.audioBase64)) {
         // Handle base64 audio from direct Inworld API (MP3 format)
         if (data.audioBase64) {
-          const audioFormat = data.audioFormat || "mp3";
-          const audioDataUrl = `data:audio/${audioFormat};base64,${data.audioBase64}`;
+          // Use proper MIME type for MP3 - "audio/mpeg" not "audio/mp3"
+          const audioDataUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
+          console.log("[Inworld TTS] Audio data URL created, length:", audioDataUrl.length);
           setGeneratedAudio(audioDataUrl);
         } else if (data.audioUrl) {
           setGeneratedAudio(data.audioUrl);
