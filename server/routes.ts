@@ -4830,20 +4830,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}${selectedToken ? `, token: ${selectedToken.label}` : ''}`);
       
-      // Direct Inworld API - synthesize-sync endpoint
-      const response = await fetch("https://api.inworld.ai/tts/v1alpha/text:synthesize-sync", {
+      // Direct Inworld API - TTS endpoint (official v1 API)
+      const response = await fetch("https://api.inworld.ai/tts/v1/voice", {
         method: "POST",
         headers: {
           "Authorization": `Basic ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          input: { text: text.trim() },
-          voice: { name: voice || "Timothy" },
-          audioConfig: {
-            audioEncoding: "MP3",
-            speakingRate: speed || 1.0,
-          }
+          text: text.trim(),
+          voiceId: voice || "Ashley",
+          modelId: "inworld-tts-1.5-mini"
         }),
       });
       
