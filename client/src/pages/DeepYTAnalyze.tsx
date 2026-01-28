@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink, Youtube, TrendingUp, Zap, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
@@ -157,84 +157,107 @@ export default function DeepYTAnalyze() {
 
   return (
     <UserPanelLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2">
-              <span className="text-black">DEEP YT</span>
-              <span className="text-gray-400"> SEARCH ANALYZE</span>
-            </h1>
-            <p className="text-sm text-gray-500 uppercase tracking-widest">Global Intelligence System</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl shadow-lg shadow-red-500/30">
+                <Youtube className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-4xl font-black tracking-tight">
+                <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Deep YT</span>
+                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent"> Intelligence</span>
+              </h1>
+            </div>
+            <p className="text-purple-300/70 text-sm font-medium tracking-wider uppercase">
+              Advanced Video & Channel Analytics Platform
+            </p>
           </div>
 
-        <Card className="mb-8 border-2 border-black shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-3">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && analyze()}
-                placeholder="Paste Video URL, Channel Link (@handle), or Search keywords..."
-                className="flex-1 text-lg h-14 border-2 border-gray-300 focus:border-black"
-                data-testid="input-yt-analyze"
-              />
-              <Button 
-                onClick={() => analyze()} 
-                disabled={loading}
-                className="h-14 px-10 bg-black hover:bg-gray-800 text-white font-bold text-lg"
-                data-testid="button-analyze"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "ANALYZE"}
-              </Button>
+          <div className="relative mb-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-3xl blur-xl"></div>
+            <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+              <div className="flex flex-col lg:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-300" />
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && analyze()}
+                    placeholder="Paste Video URL, Channel Link (@handle), or Search keywords..."
+                    className="pl-12 h-14 text-lg bg-white/10 border-white/20 text-white placeholder:text-gray-400 rounded-xl focus:border-purple-400 focus:ring-purple-400/30"
+                    data-testid="input-yt-analyze"
+                  />
+                </div>
+                <Button 
+                  onClick={() => analyze()} 
+                  disabled={loading}
+                  className="h-14 px-8 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-purple-500/30 transition-all hover:shadow-purple-500/50 hover:scale-105"
+                  data-testid="button-analyze"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      ANALYZE
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-36 bg-white/10 border-white/20 text-white rounded-lg" data-testid="select-sort">
+                    <TrendingUp className="w-4 h-4 mr-2 text-purple-300" />
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="relevance">Relevance</SelectItem>
+                    <SelectItem value="date">Upload Date</SelectItem>
+                    <SelectItem value="views">View Count</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-36 bg-white/10 border-white/20 text-white rounded-lg" data-testid="select-type">
+                    <Play className="w-4 h-4 mr-2 text-purple-300" />
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="video">Videos Only</SelectItem>
+                    <SelectItem value="channel">Channels Only</SelectItem>
+                    <SelectItem value="playlist">Playlists</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={filterDuration} onValueChange={setFilterDuration}>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white rounded-lg" data-testid="select-duration">
+                    <BarChart3 className="w-4 h-4 mr-2 text-purple-300" />
+                    <SelectValue placeholder="Duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Duration</SelectItem>
+                    <SelectItem value="short">Short (&lt; 4m)</SelectItem>
+                    <SelectItem value="long">Long (&gt; 20m)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 text-xs text-purple-300/60">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>Auto Detection: Link → Deep Scan | Keywords → SERP Intelligence</span>
+              </div>
             </div>
-
-            <div className="flex flex-wrap gap-4 mt-4">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40" data-testid="select-sort">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="date">Upload Date</SelectItem>
-                  <SelectItem value="views">View Count</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-40" data-testid="select-type">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="video">Videos Only</SelectItem>
-                  <SelectItem value="channel">Channels Only</SelectItem>
-                  <SelectItem value="playlist">Playlists</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterDuration} onValueChange={setFilterDuration}>
-                <SelectTrigger className="w-40" data-testid="select-duration">
-                  <SelectValue placeholder="Duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Duration</SelectItem>
-                  <SelectItem value="short">Short (&lt; 4m)</SelectItem>
-                  <SelectItem value="long">Long (&gt; 20m)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <p className="text-xs text-gray-400 mt-3 font-semibold uppercase">
-              Auto Detection: Link → Deep Scan | Keywords → SERP Intelligence
-            </p>
-          </CardContent>
-        </Card>
+          </div>
 
           {loading && (
             <div className="py-20 text-center">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-black" />
-              <p className="font-mono text-sm tracking-widest uppercase animate-pulse">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-purple-500/30 rounded-full blur-xl animate-pulse"></div>
+                <Loader2 className="w-16 h-16 animate-spin mx-auto text-purple-400 relative" />
+              </div>
+              <p className="font-mono text-sm tracking-widest uppercase text-purple-300 mt-6 animate-pulse">
                 Establishing Connection to YouTube Edge Nodes...
               </p>
             </div>
@@ -255,89 +278,81 @@ function VideoResult({ data, onAnalyze }: { data: VideoData; onAnalyze: (q: stri
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="lg:col-span-3 border-2 hover:border-black transition-all">
-          <CardContent className="p-8">
-            <div className="flex justify-between items-start mb-6">
-              <Badge className="bg-green-100 text-green-700">{data.scan_status}</Badge>
-              <span className="font-mono text-xs text-gray-400">ID: {data.videoId}</span>
+        <div className="lg:col-span-3 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8">
+          <div className="flex justify-between items-start mb-6">
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">{data.scan_status}</Badge>
+            <span className="font-mono text-xs text-purple-300/60">ID: {data.videoId}</span>
+          </div>
+          <h1 className="text-2xl font-extrabold mb-8 tracking-tight text-white">{ident.title}</h1>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-xs font-bold text-purple-300/70 uppercase flex items-center gap-1 mb-1">
+                <Eye className="w-3 h-3" /> Total Views
+              </p>
+              <p className="text-xl font-bold text-white">{ident.views}</p>
             </div>
-            <h1 className="text-3xl font-extrabold mb-8 tracking-tight">{ident.title}</h1>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                  <Eye className="w-3 h-3" /> Total Views
-                </p>
-                <p className="text-xl font-bold">{ident.views}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                  <ThumbsUp className="w-3 h-3" /> Exact Likes
-                </p>
-                <p className="text-xl font-bold">{ident.likes_exact}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Publish Date
-                </p>
-                <p className="text-xl font-bold">{ident.publish_date}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> Category
-                </p>
-                <p className="text-xl font-bold">{ident.category}</p>
-              </div>
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-xs font-bold text-purple-300/70 uppercase flex items-center gap-1 mb-1">
+                <ThumbsUp className="w-3 h-3" /> Exact Likes
+              </p>
+              <p className="text-xl font-bold text-white">{ident.likes_exact}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-xs font-bold text-purple-300/70 uppercase flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3" /> Publish Date
+              </p>
+              <p className="text-xl font-bold text-white">{ident.publish_date}</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4">
+              <p className="text-xs font-bold text-purple-300/70 uppercase flex items-center gap-1 mb-1">
+                <Tag className="w-3 h-3" /> Category
+              </p>
+              <p className="text-xl font-bold text-white">{ident.category}</p>
+            </div>
+          </div>
+        </div>
 
-        <Card className="border-2 hover:border-black transition-all">
-          <CardContent className="p-8 flex flex-col justify-center text-center h-full">
-            <p className="text-xs font-bold text-gray-400 uppercase mb-2">Monetization Verdict</p>
-            <div className="text-3xl font-black mb-1">{mon.monetization_confidence}</div>
-            <div className={`font-bold text-sm mb-6 ${mon.is_monetized ? 'text-green-600' : 'text-red-600'}`}>
-              {mon.verdict}
-            </div>
-            <div className="text-left space-y-2">
-              {mon.verification_checklist?.map((c, i) => (
-                <div key={i} className="text-xs border-b pb-1 flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3 text-green-500" /> {c}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 backdrop-blur-xl rounded-2xl border border-green-500/30 p-8 flex flex-col justify-center text-center">
+          <p className="text-xs font-bold text-green-300/70 uppercase mb-2">Monetization Verdict</p>
+          <div className="text-3xl font-black mb-1 text-white">{mon.monetization_confidence}</div>
+          <div className={`font-bold text-sm mb-6 ${mon.is_monetized ? 'text-green-400' : 'text-red-400'}`}>
+            {mon.verdict}
+          </div>
+          <div className="text-left space-y-2">
+            {mon.verification_checklist?.map((c, i) => (
+              <div key={i} className="text-xs border-b border-white/10 pb-1 flex items-center gap-2 text-white/80">
+                <CheckCircle className="w-3 h-3 text-green-400" /> {c}
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <Card className="lg:col-span-2 border-2 hover:border-black transition-all">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" /> Technical Deep-Dive
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 font-mono text-xs">
-              <div className="bg-gray-50 p-4 rounded">
-                <p className="text-gray-400">FAMILY SAFE</p>
-                <p className="font-bold flex items-center gap-1">
-                  {tech.is_family_safe === "Yes" ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
-                  {tech.is_family_safe}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded">
-                <p className="text-gray-400">CRAWLABLE</p>
-                <p className="font-bold flex items-center gap-1">
-                  {tech.is_crawlable === "Yes" ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
-                  {tech.is_crawlable}
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded col-span-2">
-                <p className="text-gray-400">CODECS DETECTED</p>
-                <p className="font-bold truncate">{tech.codecs?.join(' • ')}</p>
-              </div>
+        <div className="lg:col-span-2 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-6">
+          <h3 className="flex items-center gap-2 text-white font-bold mb-4">
+            <Shield className="w-5 h-5 text-purple-400" /> Technical Deep-Dive
+          </h3>
+          <div className="grid grid-cols-2 gap-4 font-mono text-xs">
+            <div className="bg-white/5 p-4 rounded-xl">
+              <p className="text-purple-300/60">FAMILY SAFE</p>
+              <p className="font-bold flex items-center gap-1 text-white">
+                {tech.is_family_safe === "Yes" ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
+                {tech.is_family_safe}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="bg-white/5 p-4 rounded-xl">
+              <p className="text-purple-300/60">CRAWLABLE</p>
+              <p className="font-bold flex items-center gap-1 text-white">
+                {tech.is_crawlable === "Yes" ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
+                {tech.is_crawlable}
+              </p>
+            </div>
+            <div className="bg-white/5 p-4 rounded-xl col-span-2">
+              <p className="text-purple-300/60">CODECS DETECTED</p>
+              <p className="font-bold truncate text-white">{tech.codecs?.join(' • ')}</p>
+            </div>
+          </div>
+        </div>
 
         <Card className="lg:col-span-2 border-2 hover:border-black transition-all">
           <CardHeader>
