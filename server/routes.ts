@@ -4841,7 +4841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           input: { text: text.trim() },
           voice: { name: voice || "Timothy" },
           audioConfig: {
-            audioEncoding: "LINEAR16",
+            audioEncoding: "MP3",
             speakingRate: speed || 1.0,
           }
         }),
@@ -4875,40 +4875,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(inworldTokens.id, selectedToken.id));
       }
       
-      // Direct Inworld API returns audioContent as base64 LINEAR16 (raw PCM)
+      // Direct Inworld API returns audioContent as base64 MP3
       if (data.audioContent) {
-        console.log(`[Inworld TTS] Audio generated successfully`);
+        console.log(`[Inworld TTS] Audio generated successfully (MP3 format)`);
         
-        // Convert LINEAR16 PCM to WAV by adding proper header
-        const pcmData = Buffer.from(data.audioContent, 'base64');
-        const sampleRate = 48000; // Inworld uses 48kHz by default
-        const numChannels = 1; // Mono
-        const bitsPerSample = 16;
-        
-        // Create WAV header
-        const wavHeader = Buffer.alloc(44);
-        wavHeader.write('RIFF', 0);
-        wavHeader.writeUInt32LE(36 + pcmData.length, 4);
-        wavHeader.write('WAVE', 8);
-        wavHeader.write('fmt ', 12);
-        wavHeader.writeUInt32LE(16, 16); // Subchunk1Size
-        wavHeader.writeUInt16LE(1, 20); // AudioFormat (PCM)
-        wavHeader.writeUInt16LE(numChannels, 22);
-        wavHeader.writeUInt32LE(sampleRate, 24);
-        wavHeader.writeUInt32LE(sampleRate * numChannels * bitsPerSample / 8, 28); // ByteRate
-        wavHeader.writeUInt16LE(numChannels * bitsPerSample / 8, 32); // BlockAlign
-        wavHeader.writeUInt16LE(bitsPerSample, 34);
-        wavHeader.write('data', 36);
-        wavHeader.writeUInt32LE(pcmData.length, 40);
-        
-        // Combine header and PCM data
-        const wavData = Buffer.concat([wavHeader, pcmData]);
-        const wavBase64 = wavData.toString('base64');
-        
+        // MP3 is directly playable by browsers - no conversion needed
         res.json({ 
           success: true, 
-          audioBase64: wavBase64,
-          audioFormat: "wav"
+          audioBase64: data.audioContent,
+          audioFormat: "mp3"
         });
       } else {
         console.error("[Inworld TTS] Unexpected response format:", data);
