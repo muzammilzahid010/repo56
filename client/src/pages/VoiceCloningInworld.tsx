@@ -645,18 +645,27 @@ export default function VoiceCloningInworld() {
                             Loading voices...
                           </div>
                         ) : availableVoices.length > 0 ? (
-                          availableVoices.map((v) => (
-                            <SelectItem key={v.voiceId} value={v.voiceId}>
-                              <div className="flex items-center gap-2">
-                                <span>{v.displayName || v.voiceId}</span>
-                                {v.gender && (
-                                  <span className="text-xs text-muted-foreground">
-                                    ({v.gender}{v.accent ? ` - ${v.accent}` : ''})
+                          availableVoices.map((v) => {
+                            const isCloned = clonedVoices.some(cv => cv.voiceId === v.voiceId || cv.displayName === v.displayName);
+                            return (
+                              <SelectItem key={v.voiceId} value={v.voiceId}>
+                                <div className="flex items-center gap-2">
+                                  <span className={isCloned ? "text-purple-600 font-medium" : ""}>
+                                    {v.displayName || v.voiceId}
                                   </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
+                                  {isCloned ? (
+                                    <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-600 px-1.5 py-0.5 rounded-full">
+                                      Cloned
+                                    </span>
+                                  ) : v.gender && (
+                                    <span className="text-xs text-muted-foreground">
+                                      ({v.gender}{v.accent ? ` - ${v.accent}` : ''})
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          })
                         ) : (
                           <div className="px-2 py-3 text-center text-muted-foreground text-sm">
                             No voices available for this language
