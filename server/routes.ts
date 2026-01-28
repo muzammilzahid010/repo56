@@ -4892,6 +4892,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice Cloning endpoint - clone a voice from audio sample
+  app.post("/api/inworld-tts/clone", requireAuth, async (req, res) => {
+    try {
+      const { displayName, langCode, audioData, transcription, description, removeBackgroundNoise } = req.body;
+      
+      if (!displayName || !audioData) {
+        return res.status(400).json({ error: "Display name and audio data are required" });
+      }
+      
+      // Get API key from database tokens
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isEnabled, true));
+      
+      if (!tokens || tokens.length === 0) {
+        return res.status(400).json({ error: "No Inworld API keys configured" });
+      }
+      
+      const apiKey = tokens[0].apiKey;
+      
+      console.log(`[Inworld Clone] Cloning voice: ${displayName}`);
+      
+      // Call Inworld voice cloning API
+      const response = await fetch("https://api.inworld.ai/voices/v1/voices:clone", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName,
+          langCode: langCode || "EN_US",
+          voiceSamples: [{
+            audioData,
+            transcription: transcription || ""
+          }],
+          description: description || "",
+          tags: ["cloned", "user-created"],
+          audioProcessingConfig: {
+            removeBackgroundNoise: removeBackgroundNoise !== false
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`[Inworld Clone] API error: ${response.status} - ${errorData}`);
+        return res.status(response.status).json({ error: `Inworld API error: ${errorData}` });
+      }
+      
+      const data = await response.json();
+      console.log(`[Inworld Clone] Voice cloned successfully:`, data.voice?.voiceId);
+      
+      res.json({ 
+        success: true, 
+        voice: data.voice,
+        voiceId: data.voice?.voiceId,
+        warnings: data.audioSamplesValidated?.[0]?.warnings || []
+      });
+    } catch (error: any) {
+      console.error("[Inworld Clone] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to clone voice" });
+    }
+  });
+
   // ==================== INWORLD API TOKENS (Admin Only) ====================
 
   // Get all Inworld tokens

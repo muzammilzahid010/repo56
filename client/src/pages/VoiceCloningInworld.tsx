@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw } from "lucide-react";
+import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw, Upload, Mic, UserCircle } from "lucide-react";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
 const INWORLD_VOICES = [
@@ -50,9 +52,39 @@ interface GenerateResponse {
   error?: string;
 }
 
+interface CloneResponse {
+  success: boolean;
+  voice?: { voiceId: string; displayName: string };
+  voiceId?: string;
+  warnings?: { text: string }[];
+  error?: string;
+}
+
+interface ClonedVoice {
+  voiceId: string;
+  displayName: string;
+  createdAt: string;
+}
+
+const LANG_CODES = [
+  { code: "EN_US", name: "English (US)" },
+  { code: "ZH_CN", name: "Chinese" },
+  { code: "KO_KR", name: "Korean" },
+  { code: "JA_JP", name: "Japanese" },
+  { code: "RU_RU", name: "Russian" },
+  { code: "IT_IT", name: "Italian" },
+  { code: "ES_ES", name: "Spanish" },
+  { code: "PT_BR", name: "Portuguese" },
+  { code: "DE_DE", name: "German" },
+  { code: "FR_FR", name: "French" },
+  { code: "AR_SA", name: "Arabic" },
+  { code: "HI_IN", name: "Hindi" },
+];
+
 export default function VoiceCloningInworld() {
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [text, setText] = useState("");
   const [voice, setVoice] = useState("Timothy");
@@ -65,6 +97,19 @@ export default function VoiceCloningInworld() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  
+  // Voice cloning states
+  const [activeTab, setActiveTab] = useState("tts");
+  const [cloneVoiceName, setCloneVoiceName] = useState("");
+  const [cloneLangCode, setCloneLangCode] = useState("EN_US");
+  const [cloneDescription, setCloneDescription] = useState("");
+  const [removeNoise, setRemoveNoise] = useState(true);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreview, setAudioPreview] = useState<string | null>(null);
+  const [clonedVoices, setClonedVoices] = useState<ClonedVoice[]>(() => {
+    const saved = localStorage.getItem("clonedVoices");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const { data: session } = useQuery<{
     authenticated: boolean;
@@ -131,6 +176,101 @@ export default function VoiceCloningInworld() {
       });
     },
   });
+
+  // Voice cloning mutation
+  const cloneMutation = useMutation({
+    mutationFn: async () => {
+      if (!audioFile) throw new Error("No audio file selected");
+      
+      // Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix to get pure base64
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioFile);
+      });
+      
+      const response = await apiRequest("POST", "/api/inworld-tts/clone", {
+        displayName: cloneVoiceName,
+        langCode: cloneLangCode,
+        audioData: base64,
+        description: cloneDescription,
+        removeBackgroundNoise: removeNoise,
+      });
+      return response.json() as Promise<CloneResponse>;
+    },
+    onSuccess: (data) => {
+      if (data.success && data.voiceId) {
+        const newVoice: ClonedVoice = {
+          voiceId: data.voiceId,
+          displayName: cloneVoiceName,
+          createdAt: new Date().toISOString(),
+        };
+        const updatedVoices = [...clonedVoices, newVoice];
+        setClonedVoices(updatedVoices);
+        localStorage.setItem("clonedVoices", JSON.stringify(updatedVoices));
+        
+        // Reset form
+        setCloneVoiceName("");
+        setCloneDescription("");
+        setAudioFile(null);
+        setAudioPreview(null);
+        
+        toast({
+          title: "Voice Cloned!",
+          description: `Voice "${cloneVoiceName}" created successfully. You can now use it in TTS.`,
+        });
+        
+        // Switch to TTS tab
+        setActiveTab("tts");
+        setVoice(data.voiceId);
+      } else {
+        toast({
+          title: "Cloning Failed",
+          description: data.error || "Failed to clone voice",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to clone voice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('audio/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload an audio file (MP3, WAV, WebM)",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Validate file size (max 16MB)
+      if (file.size > 16 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Maximum file size is 16MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setAudioFile(file);
+      setAudioPreview(URL.createObjectURL(file));
+    }
+  };
 
   const handlePlay = () => {
     if (audioRef.current) {
@@ -215,10 +355,184 @@ export default function VoiceCloningInworld() {
             <h1 className="text-3xl font-bold">Voice Cloning V2</h1>
           </div>
           <p className="text-muted-foreground">
-            Ultra-realistic text-to-speech powered by Inworld AI. Generate natural, expressive voices with low latency.
+            Ultra-realistic text-to-speech powered by Inworld AI. Clone your voice or use preset voices.
           </p>
         </div>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="tts" className="flex items-center gap-2" data-testid="tab-tts">
+              <Volume2 className="w-4 h-4" />
+              Text to Speech
+            </TabsTrigger>
+            <TabsTrigger value="clone" className="flex items-center gap-2" data-testid="tab-clone">
+              <UserCircle className="w-4 h-4" />
+              Clone Voice
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Clone Voice Tab */}
+          <TabsContent value="clone" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mic className="w-5 h-5" />
+                  Clone Your Voice
+                </CardTitle>
+                <CardDescription>
+                  Upload 5-15 seconds of clear audio to create your custom voice clone
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="voiceName">Voice Name *</Label>
+                  <Input
+                    id="voiceName"
+                    placeholder="My Custom Voice"
+                    value={cloneVoiceName}
+                    onChange={(e) => setCloneVoiceName(e.target.value)}
+                    data-testid="input-voice-name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Language</Label>
+                  <Select value={cloneLangCode} onValueChange={setCloneLangCode}>
+                    <SelectTrigger data-testid="select-clone-lang">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANG_CODES.map((lang) => (
+                        <SelectItem key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (optional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your voice (tone, accent, use cases...)"
+                    value={cloneDescription}
+                    onChange={(e) => setCloneDescription(e.target.value)}
+                    className="min-h-[80px]"
+                    data-testid="input-description"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Audio Sample *</Label>
+                  <div 
+                    className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-purple-500 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      data-testid="input-audio-file"
+                    />
+                    {audioFile ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-green-600">
+                          <Upload className="w-5 h-5" />
+                          <span>{audioFile.name}</span>
+                        </div>
+                        {audioPreview && (
+                          <audio controls src={audioPreview} className="mx-auto mt-2" />
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Click to change file
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
+                        <p className="font-medium">Click to upload audio</p>
+                        <p className="text-sm text-muted-foreground">
+                          MP3, WAV, or WebM (5-15 seconds, max 16MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Remove Background Noise</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically clean up audio
+                    </p>
+                  </div>
+                  <Switch
+                    checked={removeNoise}
+                    onCheckedChange={setRemoveNoise}
+                    data-testid="switch-remove-noise"
+                  />
+                </div>
+
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  size="lg"
+                  onClick={() => cloneMutation.mutate()}
+                  disabled={cloneMutation.isPending || !cloneVoiceName || !audioFile}
+                  data-testid="button-clone-voice"
+                >
+                  {cloneMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Cloning Voice...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-2" />
+                      Clone Voice
+                    </>
+                  )}
+                </Button>
+
+                {clonedVoices.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <Label className="mb-2 block">Your Cloned Voices</Label>
+                    <div className="space-y-2">
+                      {clonedVoices.map((v) => (
+                        <div
+                          key={v.voiceId}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <div>
+                            <p className="font-medium">{v.displayName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(v.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setVoice(v.voiceId);
+                              setActiveTab("tts");
+                            }}
+                            data-testid={`button-use-voice-${v.voiceId}`}
+                          >
+                            Use Voice
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TTS Tab */}
+          <TabsContent value="tts">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
@@ -259,6 +573,26 @@ export default function VoiceCloningInworld() {
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent>
+                        {clonedVoices.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-purple-600">
+                              Your Cloned Voices
+                            </div>
+                            {clonedVoices.map((v) => (
+                              <SelectItem key={v.voiceId} value={v.voiceId}>
+                                <div className="flex items-center gap-2">
+                                  <UserCircle className="w-4 h-4 text-purple-500" />
+                                  <span>{v.displayName}</span>
+                                  <span className="text-xs text-purple-500">(Cloned)</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                            <div className="my-1 border-t" />
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Preset Voices
+                            </div>
+                          </>
+                        )}
                         {INWORLD_VOICES.map((v) => (
                           <SelectItem key={v.id} value={v.id}>
                             <div className="flex items-center gap-2">
@@ -479,6 +813,8 @@ export default function VoiceCloningInworld() {
             </Card>
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </UserPanelLayout>
   );

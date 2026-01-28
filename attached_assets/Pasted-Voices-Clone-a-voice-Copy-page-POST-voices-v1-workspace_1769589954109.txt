@@ -1,0 +1,150 @@
+Voices
+Clone a voice
+
+Copy page
+
+POST
+/
+voices
+/
+v1
+/
+workspaces
+/
+{workspace}
+/
+voices:clone
+
+Try it
+Clone a voice
+
+curl --request POST \
+  --url https://api.inworld.ai/voices/v1/workspaces/{workspace}/voices:clone \
+  --header 'Authorization: Basic ZEE0REg3cnh1RE5rNFhjVDJhV0V3V0dvcnV5TGtKRGw6Nm5IbG1ESkU2TXVJUVV4VG8zT1lkWGxBUDdZd0N3NVdONmZ6Z0Q0VG9tQ21QdXVWUFNvRlFDdjZVdEphSEhrSQ==' \
+  --header 'Content-Type: application/json' \
+  --data '
+{
+  "displayName": "<string>",
+  "langCode": "EN_US",
+  "voiceSamples": [
+    {
+      "audioData": "aSDinaTvuI8gbWludGxpZnk=",
+      "transcription": "<string>"
+    }
+  ],
+  "description": "<string>",
+  "tags": [
+    "<string>"
+  ],
+  "audioProcessingConfig": {
+    "removeBackgroundNoise": true
+  }
+}
+'
+
+200
+
+default
+{
+  "voice": {
+    "langCode": "EN_US",
+    "displayName": "<string>",
+    "name": "<string>",
+    "description": "<string>",
+    "tags": [
+      "<string>"
+    ],
+    "voiceId": "<string>"
+  },
+  "audioSamplesValidated": [
+    {
+      "langCode": "EN_US",
+      "warnings": [
+        {
+          "text": "<string>"
+        }
+      ],
+      "errors": [
+        {
+          "text": "<string>"
+        }
+      ],
+      "transcription": "<string>",
+      "audioData": "aSDinaTvuI8gbWludGxpZnk="
+    }
+  ]
+}
+Short URL Path: The workspace ID is required to uniquely identify a voice resource, but you can omit /workspaces/{workspace} from the path. When omitted, the workspace is derived from your API key.
+Authorizations
+​
+Authorization
+stringheaderrequired
+Your API key. Make sure your API key has write permissions for the Voice API.
+
+For Basic authentication, please populate Basic $INWORLD_BASE64_CREDENTIAL
+
+Path Parameters
+​
+workspace
+stringrequired
+Workspace ID
+
+Body
+application/json
+Request message for CloneVoice custom method.
+
+​
+displayName
+stringrequired
+The human-readable name shown anywhere the voice is listed or selected. Keep it short and distinctive so users can find it easily.
+
+​
+langCode
+enum<string>required
+Available options: EN_US, ZH_CN, KO_KR, JA_JP, RU_RU, AUTO, IT_IT, ES_ES, PT_BR, DE_DE, FR_FR, AR_SA, PL_PL, NL_NL, HI_IN, HE_IL 
+​
+voiceSamples
+object[]required
+Voice samples used for cloning. For best results, provide clear audio and avoid speaking in multiple languages, whispering, or making non-verbal sounds like coughing. Instant voice cloning works best with a 10-15 sec audio clip; longer clips will be cutoff at 15sec, which can affect quality. See Voice Cloning Best Practices for guidance on how to generate a high-quality voice clone.
+
+Show child attributes
+
+​
+description
+string
+Longer blurb that explains the voice’s tone, accent, use cases, or other relevant attributes. Helpful for search and selection.
+
+​
+tags
+string[]
+Flat list of labels used for filtering, grouping and discovery. Examples could include gender, age or use case.
+
+​
+audioProcessingConfig
+object
+Audio processing config for voice cloning.
+
+Show child attributes
+
+Response
+
+200
+
+application/json
+A successful response.
+
+Response message for CloneVoice custom method.
+
+​
+voice
+object
+Voice resource representing a voice configuration.
+
+Show child attributes
+
+​
+audioSamplesValidated
+object[]
+The list of validated samples.
+
+Show child attributes
