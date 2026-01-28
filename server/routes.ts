@@ -4800,6 +4800,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== INWORLD TTS ENDPOINTS ====================
 
   // Generate TTS audio using Direct Inworld AI API (with token rotation)
+  // Helper function to split text into chunks at sentence boundaries
+  function splitTextIntoChunks(text: string, maxChunkSize: number = 1800): string[] {
+    const chunks: string[] = [];
+    let remaining = text.trim();
+    
+    while (remaining.length > 0) {
+      if (remaining.length <= maxChunkSize) {
+        chunks.push(remaining);
+        break;
+      }
+      
+      // Try to find a sentence boundary within the limit
+      let splitIndex = -1;
+      const sentenceEnders = ['. ', '! ', '? ', '.\n', '!\n', '?\n'];
+      
+      for (const ender of sentenceEnders) {
+        const lastIndex = remaining.lastIndexOf(ender, maxChunkSize);
+        if (lastIndex > splitIndex && lastIndex > maxChunkSize * 0.5) {
+          splitIndex = lastIndex + ender.length - 1;
+        }
+      }
+      
+      // Fallback to comma or space if no sentence boundary
+      if (splitIndex === -1) {
+        const commaIndex = remaining.lastIndexOf(', ', maxChunkSize);
+        if (commaIndex > maxChunkSize * 0.5) {
+          splitIndex = commaIndex + 2;
+        } else {
+          const spaceIndex = remaining.lastIndexOf(' ', maxChunkSize);
+          splitIndex = spaceIndex > 0 ? spaceIndex + 1 : maxChunkSize;
+        }
+      }
+      
+      chunks.push(remaining.substring(0, splitIndex).trim());
+      remaining = remaining.substring(splitIndex).trim();
+    }
+    
+    return chunks;
+  }
+
+  // Helper function to concatenate base64 MP3 audio files
+  function concatenateBase64Audio(audioChunks: string[]): string {
+    if (audioChunks.length === 1) return audioChunks[0];
+    
+    // Decode all chunks to binary
+    const buffers = audioChunks.map(chunk => Buffer.from(chunk, 'base64'));
+    
+    // Concatenate all buffers
+    const combined = Buffer.concat(buffers);
+    
+    // Return as base64
+    return combined.toString('base64');
+  }
+
   app.post("/api/inworld-tts/generate", requireAuth, async (req, res) => {
     try {
       const { text, voice, model, language, speed, temperature } = req.body;
@@ -4808,7 +4862,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Text is required" });
       }
       
-      const charCount = text.trim().length;
+      const trimmedText = text.trim();
+      const charCount = trimmedText.length;
       
       // Get available token from database (least used, active, under limit)
       const { inworldTokens } = await import("@shared/schema");
@@ -4828,39 +4883,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}${selectedToken ? `, token: ${selectedToken.label}` : ''}`);
+      // Split text into chunks if over 2000 characters
+      const chunks = charCount > 2000 ? splitTextIntoChunks(trimmedText) : [trimmedText];
+      const totalChunks = chunks.length;
       
-      // Direct Inworld API - TTS endpoint (official v1 API)
-      const response = await fetch("https://api.inworld.ai/tts/v1/voice", {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: text.trim(),
-          voiceId: voice || "Ashley",
-          modelId: "inworld-tts-1.5-mini"
-        }),
-      });
+      console.log(`[Inworld TTS] Generating audio for ${charCount} chars with voice: ${voice}${selectedToken ? `, token: ${selectedToken.label}` : ''}${totalChunks > 1 ? ` (${totalChunks} chunks)` : ''}`);
       
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error(`[Inworld TTS] API error: ${response.status} - ${errorData}`);
+      const audioChunks: string[] = [];
+      
+      // Generate audio for each chunk
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        console.log(`[Inworld TTS] Processing chunk ${i + 1}/${totalChunks} (${chunk.length} chars)`);
         
-        // Update error count if using database token
-        if (selectedToken) {
-          await db.update(inworldTokens)
-            .set({ errorCount: (selectedToken.errorCount || 0) + 1 })
-            .where(eq(inworldTokens.id, selectedToken.id));
+        const response = await fetch("https://api.inworld.ai/tts/v1/voice", {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: chunk,
+            voiceId: voice || "Ashley",
+            modelId: "inworld-tts-1.5-mini"
+          }),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error(`[Inworld TTS] API error on chunk ${i + 1}: ${response.status} - ${errorData}`);
+          
+          if (selectedToken) {
+            await db.update(inworldTokens)
+              .set({ errorCount: (selectedToken.errorCount || 0) + 1 })
+              .where(eq(inworldTokens.id, selectedToken.id));
+          }
+          
+          return res.status(response.status).json({ 
+            error: `Inworld API error on chunk ${i + 1}: ${response.statusText}` 
+          });
         }
         
-        return res.status(response.status).json({ 
-          error: `Inworld API error: ${response.statusText}` 
-        });
+        const data = await response.json();
+        
+        if (data.audioContent) {
+          audioChunks.push(data.audioContent);
+        } else {
+          console.error(`[Inworld TTS] Unexpected response format on chunk ${i + 1}:`, data);
+          return res.status(500).json({ error: `Unexpected API response on chunk ${i + 1}` });
+        }
       }
-      
-      const data = await response.json();
       
       // Update character usage if using database token
       if (selectedToken) {
@@ -4876,20 +4948,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Inworld TTS] No database token selected, using env key - character count not tracked`);
       }
       
-      // Direct Inworld API returns audioContent as base64 MP3
-      if (data.audioContent) {
-        console.log(`[Inworld TTS] Audio generated successfully (MP3 format)`);
-        
-        // MP3 is directly playable by browsers - no conversion needed
-        res.json({ 
-          success: true, 
-          audioBase64: data.audioContent,
-          audioFormat: "mp3"
-        });
-      } else {
-        console.error("[Inworld TTS] Unexpected response format:", data);
-        res.status(500).json({ error: "Unexpected API response format" });
-      }
+      // Combine audio chunks if multiple
+      const combinedAudio = concatenateBase64Audio(audioChunks);
+      console.log(`[Inworld TTS] Audio generated successfully (MP3 format)${totalChunks > 1 ? ` - combined ${totalChunks} chunks` : ''}`);
+      
+      res.json({ 
+        success: true, 
+        audioBase64: combinedAudio,
+        audioFormat: "mp3",
+        chunks: totalChunks
+      });
     } catch (error: any) {
       console.error("[Inworld TTS] Error:", error);
       res.status(500).json({ error: error.message || "Failed to generate audio" });

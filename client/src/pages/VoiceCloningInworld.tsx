@@ -594,16 +594,16 @@ export default function VoiceCloningInworld() {
                   data-testid="input-text"
                 />
                 <div className="flex justify-between text-sm">
-                  <span className={characterCount > 2000 ? "text-red-500 font-medium" : "text-muted-foreground"}>
-                    {characterCount} / 2000 characters
-                    {characterCount > 2000 && " (exceeds limit)"}
+                  <span className={characterCount > 2000 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
+                    {characterCount} characters
+                    {characterCount > 2000 && ` (${Math.ceil(characterCount / 1800)} chunks)`}
                   </span>
                   <span className="text-muted-foreground">{wordCount} words</span>
                 </div>
                 {characterCount > 2000 && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      Text exceeds 2000 character limit. Please shorten your text to generate audio.
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      Long text detected - will be generated in {Math.ceil(characterCount / 1800)} chunks and combined automatically.
                     </p>
                   </div>
                 )}
@@ -754,7 +754,7 @@ export default function VoiceCloningInworld() {
                   className="w-full"
                   size="lg"
                   onClick={() => generateMutation.mutate()}
-                  disabled={!text.trim() || generateMutation.isPending || text.length > 2000}
+                  disabled={!text.trim() || generateMutation.isPending}
                   data-testid="button-generate"
                 >
                   {generateMutation.isPending ? (
