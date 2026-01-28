@@ -3053,6 +3053,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update Google Labs cookie" });
     }
   });
+
+  app.put("/api/admin/app-settings/elevenlabs-api-key", requireAdmin, async (req, res) => {
+    try {
+      const { elevenlabsApiKey } = req.body;
+      if (typeof elevenlabsApiKey !== "string") {
+        return res.status(400).json({ error: "elevenlabsApiKey must be a string" });
+      }
+      const updatedSettings = await storage.updateAppSettings({ elevenlabsApiKey });
+      res.json({ success: true, settings: updatedSettings });
+    } catch (error) {
+      console.error("Error in PUT /api/admin/app-settings/elevenlabs-api-key:", error);
+      res.status(500).json({ error: "Failed to update ElevenLabs API key" });
+    }
+  });
   
   // Browser Pool Settings removed - now using Media API for video generation
 

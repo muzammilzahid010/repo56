@@ -3596,7 +3596,7 @@ export default function Admin() {
                           onClick={async () => {
                             try {
                               const apiKey = appSettingsForm.getValues("elevenlabsApiKey");
-                              const response = await fetch('/api/admin/app-settings', {
+                              const response = await fetch('/api/admin/app-settings/elevenlabs-api-key', {
                                 method: 'PUT',
                                 headers: { 'Content-Type': 'application/json' },
                                 credentials: 'include',
