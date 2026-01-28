@@ -5067,6 +5067,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice Cloning from URL endpoint - clone a voice from audio URL (for ElevenLabs voices)
+  app.post("/api/voice-ai/clone-from-url", requireAuth, async (req, res) => {
+    try {
+      const { name, audioUrl, langCode, description } = req.body;
+      
+      if (!name || !audioUrl) {
+        return res.status(400).json({ error: "Name and audio URL are required" });
+      }
+      
+      // Get API key from database tokens
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isActive, true));
+      
+      if (!tokens || tokens.length === 0) {
+        return res.status(400).json({ error: "No API keys configured" });
+      }
+      
+      const apiKey = tokens[0].apiKey;
+      
+      console.log(`[Voice Clone] Downloading audio from: ${audioUrl}`);
+      
+      // Download audio from URL
+      const audioResponse = await fetch(audioUrl);
+      if (!audioResponse.ok) {
+        return res.status(400).json({ error: "Failed to download audio from URL" });
+      }
+      
+      const audioBuffer = await audioResponse.arrayBuffer();
+      const audioBase64 = Buffer.from(audioBuffer).toString("base64");
+      
+      console.log(`[Voice Clone] Cloning voice: ${name} (${audioBase64.length} bytes)`);
+      
+      // Call voice cloning API
+      const response = await fetch("https://api.inworld.ai/voices/v1/voices:clone", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          displayName: name,
+          langCode: langCode || "EN_US",
+          voiceSamples: [{
+            audioData: audioBase64,
+            transcription: ""
+          }],
+          description: description || "",
+          tags: ["cloned", "elevenlabs"],
+          audioProcessingConfig: {
+            removeBackgroundNoise: true
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`[Voice Clone] API error: ${response.status} - ${errorData}`);
+        return res.status(response.status).json({ error: `API error: ${errorData}` });
+      }
+      
+      const data = await response.json();
+      console.log(`[Voice Clone] Voice cloned successfully:`, data.voice?.voiceId);
+      
+      res.json({ 
+        success: true, 
+        voice: data.voice,
+        voiceId: data.voice?.voiceId,
+        warnings: data.audioSamplesValidated?.[0]?.warnings || []
+      });
+    } catch (error: any) {
+      console.error("[Voice Clone] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to clone voice" });
+    }
+  });
+
   // ==================== INWORLD API TOKENS (Admin Only) ====================
 
   // Get all Inworld tokens

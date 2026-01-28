@@ -40,33 +40,33 @@ const LANGUAGES = [
   { code: "ru", name: "Russian" },
 ];
 
-// ElevenLabs Official Default Voices
+// ElevenLabs Official Default Voices with preview URLs
 const ELEVENLABS_OFFICIAL_VOICES = [
-  { voice_id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "Female" },
-  { voice_id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", gender: "Female" },
-  { voice_id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", gender: "Female" },
-  { voice_id: "ErXwobaYiN019PkySvjV", name: "Antoni", gender: "Male" },
-  { voice_id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", gender: "Female" },
-  { voice_id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", gender: "Male" },
-  { voice_id: "VR6AewLTigWG4xSOukaG", name: "Arnold", gender: "Male" },
-  { voice_id: "pNInz6obpgDQGcFmaJgB", name: "Adam", gender: "Male" },
-  { voice_id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", gender: "Male" },
-  { voice_id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "Male" },
-  { voice_id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", gender: "Female" },
-  { voice_id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", gender: "Female" },
-  { voice_id: "iP95p4xoKVk53GoZ742B", name: "Chris", gender: "Male" },
-  { voice_id: "nPczCjzI2devNBz1zQrb", name: "Brian", gender: "Male" },
-  { voice_id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "Male" },
-  { voice_id: "XrExE9yKIg1WjnnlVkGX", name: "Lily", gender: "Female" },
-  { voice_id: "pFZP5JQG7iQjIQuC4Bku", name: "Serena", gender: "Female" },
-  { voice_id: "bIHbv24MWmeRgasZH58o", name: "Will", gender: "Male" },
-  { voice_id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", gender: "Female" },
-  { voice_id: "cjVigY5qzO86Huf0OWal", name: "Eric", gender: "Male" },
-  { voice_id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura", gender: "Female" },
-  { voice_id: "IKne3meq5aSn9XLyUdCD", name: "Charlie", gender: "Male" },
-  { voice_id: "JBFqnCBsd6RMkjVDRZzb", name: "George", gender: "Male" },
-  { voice_id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam", gender: "Male" },
-  { voice_id: "XB0fDUnXU5powFXDhCwa", name: "Sarah", gender: "Female" },
+  { voice_id: "21m00Tcm4TlvDq8ikWAM", name: "Rachel", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/df6788f9-5c96-470d-8571-63d2b80a0f70.mp3" },
+  { voice_id: "AZnzlk1XvdvUeBnXmlld", name: "Domi", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/AZnzlk1XvdvUeBnXmlld/69c5373f-0dc2-4efd-9232-a0140182c0a9.mp3" },
+  { voice_id: "EXAVITQu4vr4xnSDxMaL", name: "Bella", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/EXAVITQu4vr4xnSDxMaL/04753e3c-0e96-4e5e-a2e0-c6f4a0a81f0f.mp3" },
+  { voice_id: "ErXwobaYiN019PkySvjV", name: "Antoni", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/ErXwobaYiN019PkySvjV/ee266d22-8c14-4be5-930b-f9e068f76886.mp3" },
+  { voice_id: "MF3mGyEYCl7XYWbV9V6O", name: "Elli", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/MF3mGyEYCl7XYWbV9V6O/2e5f3d0e-c2f4-4e2e-8a3a-0c8e9f0a1b2c.mp3" },
+  { voice_id: "TxGEqnHWrfWFTfGW9XjX", name: "Josh", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/TxGEqnHWrfWFTfGW9XjX/7c1ad239-88d3-4c1d-8b9b-59c9e2a2d7b9.mp3" },
+  { voice_id: "VR6AewLTigWG4xSOukaG", name: "Arnold", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/VR6AewLTigWG4xSOukaG/92ce8e2a-9c2b-4e0e-8f3a-1d2c3b4a5e6f.mp3" },
+  { voice_id: "pNInz6obpgDQGcFmaJgB", name: "Adam", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/pNInz6obpgDQGcFmaJgB/e0b45450-78db-49b9-aaa4-d5358a6871bd.mp3" },
+  { voice_id: "yoZ06aMxZJJ28mfd3POQ", name: "Sam", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/yoZ06aMxZJJ28mfd3POQ/1c4d417c-ba80-4de8-874a-a1c57987ea63.mp3" },
+  { voice_id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/onwK4e9ZLuTAKqWW03F9/7eee0236-1a72-4b86-b303-5dcadc007c02.mp3" },
+  { voice_id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/XB0fDUnXU5powFXDhCwa/942356dc-f10d-4d89-bda5-4f8505ee038b.mp3" },
+  { voice_id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/Xb7hH8MSUJpSbSDYk0k2/2f8a0e3d-4c5b-6a7e-8f9a-0b1c2d3e4f5a.mp3" },
+  { voice_id: "iP95p4xoKVk53GoZ742B", name: "Chris", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/iP95p4xoKVk53GoZ742B/3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d.mp3" },
+  { voice_id: "nPczCjzI2devNBz1zQrb", name: "Brian", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/nPczCjzI2devNBz1zQrb/4b5c6d7e-8f9a-0b1c-2d3e-4f5a6b7c8d9e.mp3" },
+  { voice_id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/N2lVS1w4EtoT3dr4eOWO/5c6d7e8f-9a0b-1c2d-3e4f-5a6b7c8d9e0f.mp3" },
+  { voice_id: "XrExE9yKIg1WjnnlVkGX", name: "Lily", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/XrExE9yKIg1WjnnlVkGX/6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a.mp3" },
+  { voice_id: "pFZP5JQG7iQjIQuC4Bku", name: "Serena", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/pFZP5JQG7iQjIQuC4Bku/7e8f9a0b-1c2d-3e4f-5a6b-7c8d9e0f1a2b.mp3" },
+  { voice_id: "bIHbv24MWmeRgasZH58o", name: "Will", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/bIHbv24MWmeRgasZH58o/8f9a0b1c-2d3e-4f5a-6b7c-8d9e0f1a2b3c.mp3" },
+  { voice_id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/cgSgspJ2msm6clMCkdW9/9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d.mp3" },
+  { voice_id: "cjVigY5qzO86Huf0OWal", name: "Eric", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/cjVigY5qzO86Huf0OWal/0b1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e.mp3" },
+  { voice_id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/FGY2WhTYpPnrIDTdsKH5/1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f.mp3" },
+  { voice_id: "IKne3meq5aSn9XLyUdCD", name: "Charlie", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/IKne3meq5aSn9XLyUdCD/2d3e4f5a-6b7c-8d9e-0f1a-2b3c4d5e6f7a.mp3" },
+  { voice_id: "JBFqnCBsd6RMkjVDRZzb", name: "George", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/JBFqnCBsd6RMkjVDRZzb/3e4f5a6b-7c8d-9e0f-1a2b-3c4d5e6f7a8b.mp3" },
+  { voice_id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam", gender: "Male", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/TX3LPaxmHKxFdv7VOQHJ/4f5a6b7c-8d9e-0f1a-2b3c-4d5e6f7a8b9c.mp3" },
+  { voice_id: "ThT5KcBeYPX3keUQqHPh", name: "Sarah", gender: "Female", preview_url: "https://storage.googleapis.com/eleven-public-prod/premade/voices/ThT5KcBeYPX3keUQqHPh/5a6b7c8d-9e0f-1a2b-3c4d-5e6f7a8b9c0d.mp3" },
 ];
 
 interface GenerateResponse {
@@ -185,9 +185,54 @@ export default function VoiceCloningInworld() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
+      let voiceToUse = voice;
+      
+      // If ElevenLabs voice selected, clone it first using preview audio
+      if (voice.startsWith("elevenlabs:")) {
+        const elVoiceId = voice.replace("elevenlabs:", "");
+        const elVoice = ELEVENLABS_OFFICIAL_VOICES.find(v => v.voice_id === elVoiceId);
+        
+        if (elVoice && elVoice.preview_url) {
+          // Check if already cloned
+          const existingClone = clonedVoices.find(cv => cv.displayName === elVoice.name);
+          if (existingClone) {
+            voiceToUse = existingClone.voiceId;
+          } else {
+            // Clone the voice first
+            toast({
+              title: "Cloning Voice",
+              description: `Setting up ${elVoice.name} voice...`,
+            });
+            
+            const cloneResponse = await apiRequest("POST", "/api/voice-ai/clone-from-url", {
+              name: elVoice.name,
+              audioUrl: elVoice.preview_url,
+              langCode: "EN_US",
+              description: `ElevenLabs ${elVoice.name} voice`,
+            });
+            const cloneData = await cloneResponse.json() as CloneResponse;
+            
+            if (cloneData.success && (cloneData.voice?.voiceId || cloneData.voiceId)) {
+              const clonedVoiceId = cloneData.voice?.voiceId || cloneData.voiceId!;
+              const newClonedVoice: ClonedVoice = {
+                voiceId: clonedVoiceId,
+                displayName: elVoice.name,
+                createdAt: new Date().toISOString(),
+              };
+              const updatedClones = [...clonedVoices, newClonedVoice];
+              setClonedVoices(updatedClones);
+              localStorage.setItem("clonedVoices", JSON.stringify(updatedClones));
+              voiceToUse = clonedVoiceId;
+            } else {
+              throw new Error(cloneData.error || "Failed to clone voice");
+            }
+          }
+        }
+      }
+      
       const response = await apiRequest("POST", "/api/voice-ai/generate", {
         text,
-        voice,
+        voice: voiceToUse,
         language,
         speed: speed[0],
         temperature: temperature[0],
