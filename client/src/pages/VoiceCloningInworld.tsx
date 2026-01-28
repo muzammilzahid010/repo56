@@ -15,14 +15,49 @@ import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw, Uplo
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
 const INWORLD_VOICES = [
-  { id: "Timothy", name: "Timothy", gender: "Male", style: "Warm & Friendly" },
-  { id: "Luna", name: "Luna", gender: "Female", style: "Calm & Soothing" },
-  { id: "Marcus", name: "Marcus", gender: "Male", style: "Professional" },
-  { id: "Elena", name: "Elena", gender: "Female", style: "Energetic" },
-  { id: "James", name: "James", gender: "Male", style: "Authoritative" },
-  { id: "Sophia", name: "Sophia", gender: "Female", style: "Warm & Expressive" },
-  { id: "Oliver", name: "Oliver", gender: "Male", style: "Youthful" },
-  { id: "Emma", name: "Emma", gender: "Female", style: "Friendly" },
+  // English voices
+  { id: "Timothy", name: "Timothy", gender: "Male", style: "Warm & Friendly", languages: ["en"] },
+  { id: "Luna", name: "Luna", gender: "Female", style: "Calm & Soothing", languages: ["en"] },
+  { id: "Marcus", name: "Marcus", gender: "Male", style: "Professional", languages: ["en"] },
+  { id: "Elena", name: "Elena", gender: "Female", style: "Energetic", languages: ["en", "es"] },
+  { id: "James", name: "James", gender: "Male", style: "Authoritative", languages: ["en"] },
+  { id: "Sophia", name: "Sophia", gender: "Female", style: "Warm & Expressive", languages: ["en"] },
+  { id: "Oliver", name: "Oliver", gender: "Male", style: "Youthful", languages: ["en"] },
+  { id: "Emma", name: "Emma", gender: "Female", style: "Friendly", languages: ["en"] },
+  // Chinese voices
+  { id: "Xiaomei", name: "Xiaomei", gender: "Female", style: "Warm & Friendly", languages: ["zh"] },
+  { id: "Wei", name: "Wei", gender: "Male", style: "Professional", languages: ["zh"] },
+  { id: "Liling", name: "Liling", gender: "Female", style: "Energetic", languages: ["zh"] },
+  // Spanish voices
+  { id: "Carlos", name: "Carlos", gender: "Male", style: "Warm & Friendly", languages: ["es"] },
+  { id: "Maria", name: "Maria", gender: "Female", style: "Professional", languages: ["es"] },
+  // French voices
+  { id: "Pierre", name: "Pierre", gender: "Male", style: "Professional", languages: ["fr"] },
+  { id: "Claire", name: "Claire", gender: "Female", style: "Warm & Friendly", languages: ["fr"] },
+  // German voices
+  { id: "Hans", name: "Hans", gender: "Male", style: "Professional", languages: ["de"] },
+  { id: "Anna", name: "Anna", gender: "Female", style: "Friendly", languages: ["de"] },
+  // Japanese voices
+  { id: "Yuki", name: "Yuki", gender: "Female", style: "Calm & Soothing", languages: ["ja"] },
+  { id: "Takeshi", name: "Takeshi", gender: "Male", style: "Professional", languages: ["ja"] },
+  // Korean voices
+  { id: "Jisoo", name: "Jisoo", gender: "Female", style: "Warm & Friendly", languages: ["ko"] },
+  { id: "Minho", name: "Minho", gender: "Male", style: "Energetic", languages: ["ko"] },
+  // Hindi voices
+  { id: "Priya", name: "Priya", gender: "Female", style: "Warm & Friendly", languages: ["hi"] },
+  { id: "Raj", name: "Raj", gender: "Male", style: "Professional", languages: ["hi"] },
+  // Arabic voices
+  { id: "Fatima", name: "Fatima", gender: "Female", style: "Professional", languages: ["ar"] },
+  { id: "Ahmed", name: "Ahmed", gender: "Male", style: "Authoritative", languages: ["ar"] },
+  // Russian voices
+  { id: "Natasha", name: "Natasha", gender: "Female", style: "Warm & Friendly", languages: ["ru"] },
+  { id: "Ivan", name: "Ivan", gender: "Male", style: "Professional", languages: ["ru"] },
+  // Portuguese voices
+  { id: "Joao", name: "Joao", gender: "Male", style: "Friendly", languages: ["pt"] },
+  { id: "Ana", name: "Ana", gender: "Female", style: "Warm & Expressive", languages: ["pt"] },
+  // Italian voices
+  { id: "Marco", name: "Marco", gender: "Male", style: "Warm & Friendly", languages: ["it"] },
+  { id: "Giulia", name: "Giulia", gender: "Female", style: "Expressive", languages: ["it"] },
 ];
 
 const LANGUAGES = [
@@ -110,6 +145,20 @@ export default function VoiceCloningInworld() {
     const saved = localStorage.getItem("clonedVoices");
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Filter voices based on selected language
+  const filteredVoices = INWORLD_VOICES.filter(v => v.languages.includes(language));
+  
+  // Auto-select first voice when language changes
+  useEffect(() => {
+    const voicesForLang = INWORLD_VOICES.filter(v => v.languages.includes(language));
+    const currentVoiceSupportsLang = INWORLD_VOICES.find(v => v.id === voice)?.languages.includes(language);
+    
+    // Only change voice if current voice doesn't support the new language
+    if (!currentVoiceSupportsLang && voicesForLang.length > 0) {
+      setVoice(voicesForLang[0].id);
+    }
+  }, [language]);
 
   const { data: session } = useQuery<{
     authenticated: boolean;
@@ -593,7 +642,7 @@ export default function VoiceCloningInworld() {
                             </div>
                           </>
                         )}
-                        {INWORLD_VOICES.map((v) => (
+                        {filteredVoices.map((v) => (
                           <SelectItem key={v.id} value={v.id}>
                             <div className="flex items-center gap-2">
                               <span>{v.name}</span>
