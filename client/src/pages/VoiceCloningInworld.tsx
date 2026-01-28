@@ -617,19 +617,6 @@ export default function VoiceCloningInworld() {
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent>
-                        {clonedVoices.length > 0 && (
-                          <>
-                            {clonedVoices.map((v) => (
-                              <SelectItem key={v.voiceId} value={v.voiceId}>
-                                {v.displayName}
-                              </SelectItem>
-                            ))}
-                            <div className="my-1 border-t" />
-                          </>
-                        )}
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                          Preset Voices
-                        </div>
                         {isLoadingVoices ? (
                           <div className="px-2 py-3 text-center text-muted-foreground">
                             <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
