@@ -616,10 +616,10 @@ export default function VoiceCloningInworld() {
                       <SelectTrigger data-testid="select-voice">
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="max-h-[300px]">
                         {clonedVoices.length > 0 && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-purple-600 flex items-center gap-1">
+                            <div className="px-2 py-1.5 text-xs font-semibold text-purple-600 flex items-center gap-1 sticky top-0 bg-popover z-10">
                               <UserCircle className="w-3 h-3" />
                               Your Cloned Voices
                             </div>
@@ -631,7 +631,7 @@ export default function VoiceCloningInworld() {
                             <div className="my-1 border-t" />
                           </>
                         )}
-                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover z-10">
                           Preset Voices
                         </div>
                         {isLoadingVoices ? (
