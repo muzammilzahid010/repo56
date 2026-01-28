@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink, Youtube, TrendingUp, Zap, BarChart3 } from "lucide-react";
+import { Loader2, Search, Play, Users, Eye, ThumbsUp, Calendar, Tag, Shield, CheckCircle, XCircle, ExternalLink, Youtube, TrendingUp, Zap, BarChart3, Filter, Sparkles, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
@@ -394,75 +394,172 @@ export default function DeepYTAnalyze() {
 
         {!loading && !hasResults && !isSearchActive && (
           <div className="py-8 mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("https://youtube.com/watch?v=")}>
-                <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Play className="w-7 h-7 text-red-500" />
-                </div>
-                <h3 className="font-bold mb-2">Video Analysis</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get monetization status, views, likes, audience retention heatmap & technical details
-                </p>
-              </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              {/* Video Analysis Card */}
+              <div 
+                className="group relative cursor-pointer"
+                onClick={() => setInput("https://youtube.com/watch?v=")}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-rose-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-red-200 dark:group-hover:border-red-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-red-500/10">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-red-100 to-transparent dark:from-red-950/50 rounded-bl-full opacity-50"></div>
+                  <CardContent className="p-8 text-center relative">
+                    <div className="relative inline-flex mb-6">
+                      <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <Play className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
+                        <Zap className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-bold mb-3 group-hover:text-red-600 transition-colors">Video Analysis</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Get monetization status, views, likes, audience retention heatmap & technical details
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full">Views</span>
+                      <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full">Likes</span>
+                      <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full">Revenue</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("@")}>
-                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-7 h-7 text-purple-500" />
-                </div>
-                <h3 className="font-bold mb-2">Channel Intelligence</h3>
-                <p className="text-sm text-muted-foreground">
-                  Analyze subscribers, total videos, views, recent uploads & channel growth metrics
-                </p>
-              </Card>
+              {/* Channel Intelligence Card */}
+              <div 
+                className="group relative cursor-pointer"
+                onClick={() => setInput("@")}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-violet-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-purple-200 dark:group-hover:border-purple-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-purple-500/10">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100 to-transparent dark:from-purple-950/50 rounded-bl-full opacity-50"></div>
+                  <CardContent className="p-8 text-center relative">
+                    <div className="relative inline-flex mb-6">
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <Users className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+                        <TrendingUp className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-bold mb-3 group-hover:text-purple-600 transition-colors">Channel Intelligence</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Analyze subscribers, total videos, views, recent uploads & channel growth metrics
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-full">Subs</span>
+                      <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-full">Videos</span>
+                      <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-full">Growth</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setInput("")}>
-                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-7 h-7 text-blue-500" />
-                </div>
-                <h3 className="font-bold mb-2">SERP Search</h3>
-                <p className="text-sm text-muted-foreground">
-                  Search YouTube with filters for relevance, date, views, type & duration
-                </p>
-              </Card>
+              {/* SERP Search Card */}
+              <div 
+                className="group relative cursor-pointer"
+                onClick={() => setInput("")}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-blue-500/10">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100 to-transparent dark:from-blue-950/50 rounded-bl-full opacity-50"></div>
+                  <CardContent className="p-8 text-center relative">
+                    <div className="relative inline-flex mb-6">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
+                        <Search className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+                        <Filter className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-bold mb-3 group-hover:text-blue-600 transition-colors">SERP Search</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Search YouTube with filters for relevance, date, views, type & duration
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">Filters</span>
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">Sort</span>
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">Type</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
-            <Card className="bg-muted/30 border-dashed">
-              <CardContent className="p-6 text-center">
-                <h3 className="text-base font-bold mb-4">Quick Start</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left text-sm">
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                    <div>
-                      <p className="font-medium">Paste Video URL</p>
-                      <p className="text-xs text-muted-foreground">youtube.com/watch?v=...</p>
+            {/* Quick Start Section */}
+            <Card className="overflow-hidden border-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <Sparkles className="w-5 h-5 text-yellow-500" />
+                  <h3 className="text-lg font-bold">Quick Start Guide</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="relative group">
+                    <div className="flex items-start gap-4 p-4 rounded-xl bg-background border hover:border-red-200 dark:hover:border-red-800 transition-colors">
+                      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                        <span className="text-white font-bold">1</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-1">Paste Video URL</p>
+                        <p className="text-xs text-muted-foreground">youtube.com/watch?v=...</p>
+                      </div>
                     </div>
+                    <ArrowRight className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30" />
                   </div>
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                    <div>
-                      <p className="font-medium">Paste Channel URL</p>
-                      <p className="text-xs text-muted-foreground">@ChannelName or /c/...</p>
+                  
+                  <div className="relative group">
+                    <div className="flex items-start gap-4 p-4 rounded-xl bg-background border hover:border-purple-200 dark:hover:border-purple-800 transition-colors">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                        <span className="text-white font-bold">2</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold mb-1">Paste Channel URL</p>
+                        <p className="text-xs text-muted-foreground">@ChannelName or /c/...</p>
+                      </div>
                     </div>
+                    <ArrowRight className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30" />
                   </div>
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                  
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-background border hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                      <span className="text-white font-bold">3</span>
+                    </div>
                     <div>
-                      <p className="font-medium">Enter Keywords</p>
+                      <p className="font-semibold mb-1">Enter Keywords</p>
                       <p className="text-xs text-muted-foreground">Search for content</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-2">Quick Examples:</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("@MrBeast"); analyze("@MrBeast"); }} data-testid="example-mrbeast">
+                <div className="border-t pt-6">
+                  <p className="text-sm text-center text-muted-foreground mb-4">Try these popular searches:</p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full px-5 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 dark:hover:bg-purple-950 dark:hover:border-purple-700"
+                      onClick={() => { setIsSearchActive(true); setInput("@MrBeast"); analyze("@MrBeast"); }} 
+                      data-testid="example-mrbeast"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
                       @MrBeast
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("trending music 2026"); analyze("trending music 2026"); }} data-testid="example-trending">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full px-5 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 dark:hover:bg-orange-950 dark:hover:border-orange-700"
+                      onClick={() => { setIsSearchActive(true); setInput("trending music 2026"); analyze("trending music 2026"); }} 
+                      data-testid="example-trending"
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
                       trending music 2026
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setIsSearchActive(true); setInput("how to make money"); analyze("how to make money"); }} data-testid="example-money">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full px-5 hover:bg-green-50 hover:border-green-300 hover:text-green-600 dark:hover:bg-green-950 dark:hover:border-green-700"
+                      onClick={() => { setIsSearchActive(true); setInput("how to make money"); analyze("how to make money"); }} 
+                      data-testid="example-money"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
                       how to make money
                     </Button>
                   </div>
