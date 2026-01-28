@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap } from "lucide-react";
+import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw } from "lucide-react";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
 const INWORLD_VOICES = [
@@ -66,6 +66,8 @@ export default function VoiceCloningInworld() {
   
   const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const { data: session } = useQuery<{
     authenticated: boolean;
@@ -138,6 +140,41 @@ export default function VoiceCloningInworld() {
 
   const handleAudioEnded = () => {
     setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+      setCurrentTime(value[0]);
+    }
+  };
+
+  const handleRestart = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const characterCount = text.length;
@@ -323,41 +360,72 @@ export default function VoiceCloningInworld() {
                 </Button>
 
                 {generatedAudio && (
-                  <div className="space-y-3 pt-4 border-t">
+                  <div className="space-y-4 pt-4 border-t">
                     <audio
                       ref={audioRef}
                       src={generatedAudio}
                       onEnded={handleAudioEnded}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
                       className="hidden"
                     />
                     
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={handlePlay}
-                        data-testid="button-play"
-                      >
-                        {isPlaying ? (
-                          <>
-                            <Pause className="w-4 h-4 mr-2" />
-                            Pause
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Play
-                          </>
-                        )}
-                      </Button>
+                    <div className="bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 rounded-xl p-4 border border-purple-500/20">
+                      <div className="flex items-center gap-4">
+                        <Button
+                          size="icon"
+                          className="h-12 w-12 rounded-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+                          onClick={handlePlay}
+                          data-testid="button-play"
+                        >
+                          {isPlaying ? (
+                            <Pause className="w-5 h-5" />
+                          ) : (
+                            <Play className="w-5 h-5 ml-0.5" />
+                          )}
+                        </Button>
+                        
+                        <div className="flex-1 space-y-2">
+                          <Slider
+                            value={[currentTime]}
+                            onValueChange={handleSeek}
+                            max={duration || 100}
+                            step={0.1}
+                            className="cursor-pointer"
+                            data-testid="slider-progress"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={handleRestart}
+                            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                            data-testid="button-restart"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={handleDownload}
+                            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                            data-testid="button-download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
                       
-                      <Button
-                        variant="outline"
-                        onClick={handleDownload}
-                        data-testid="button-download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <Volume2 className="w-3 h-3" />
+                        <span>Generated with Inworld TTS</span>
+                      </div>
                     </div>
                   </div>
                 )}
