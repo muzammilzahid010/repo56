@@ -39,10 +39,7 @@ const LANGUAGES = [
 ];
 
 const MODELS = [
-  { id: "inworld/tts-1.5-max", name: "TTS 1.5 Max", description: "Best quality, ~200ms latency" },
-  { id: "inworld/tts-1.5-mini", name: "TTS 1.5 Mini", description: "Fastest, <100ms latency" },
-  { id: "inworld/tts-1-max", name: "TTS 1 Max", description: "8.8B params, high quality" },
-  { id: "inworld/tts-1", name: "TTS 1", description: "1.6B params, balanced" },
+  { id: "inworld/tts-1.5-mini", name: "TTS 1.5 Mini", description: "Fast & efficient" },
 ];
 
 interface GenerateResponse {
@@ -59,7 +56,7 @@ export default function VoiceCloningInworld() {
   
   const [text, setText] = useState("");
   const [voice, setVoice] = useState("Timothy");
-  const [model, setModel] = useState("inworld/tts-1.5-max");
+  const [model, setModel] = useState("inworld/tts-1.5-mini");
   const [language, setLanguage] = useState("en");
   const [speed, setSpeed] = useState([1.0]);
   const [temperature, setTemperature] = useState([0.7]);
