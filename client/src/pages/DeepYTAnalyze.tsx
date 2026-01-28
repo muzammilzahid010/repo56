@@ -169,22 +169,22 @@ export default function DeepYTAnalyze() {
         <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'min-h-[40vh] flex flex-col justify-center' : ''}`}>
           {/* Header - Centered when not active */}
           <div className={`transition-all duration-500 ease-out ${!isSearchActive && !hasResults && !loading ? 'text-center mb-10' : 'mb-6'}`}>
-            <div className={`inline-flex items-center gap-4 ${!isSearchActive && !hasResults && !loading ? 'justify-center w-full flex-col' : ''}`}>
-              <div className={`bg-gradient-to-br from-red-500 via-red-600 to-rose-600 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg shadow-red-500/30 ${!isSearchActive && !hasResults && !loading ? 'w-20 h-20' : 'w-10 h-10'}`}>
-                <Youtube className={`text-white transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'w-10 h-10' : 'w-5 h-5'}`} />
-              </div>
-              <div className={`${!isSearchActive && !hasResults && !loading ? 'text-center' : ''}`}>
-                <h1 className={`font-extrabold tracking-tight transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'text-6xl md:text-7xl' : 'text-2xl'}`} data-testid="text-page-title">
-                  <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent">Deep YT</span>{' '}
-                  <span className="bg-gradient-to-r from-red-500 to-rose-600 bg-clip-text text-transparent">Search Analyze</span>
-                </h1>
-                {(!isSearchActive && !hasResults && !loading) && (
-                  <p className="text-muted-foreground mt-3 text-lg max-w-lg mx-auto">
-                    Powerful AI-driven YouTube intelligence for videos, channels & content discovery
-                  </p>
-                )}
-              </div>
+            <div className={`${!isSearchActive && !hasResults && !loading ? 'text-center' : 'flex items-center gap-3'}`}>
+              {(isSearchActive || hasResults || loading) && (
+                <div className="bg-gradient-to-br from-red-500 via-red-600 to-rose-600 rounded-xl w-10 h-10 flex items-center justify-center">
+                  <Youtube className="text-white w-5 h-5" />
+                </div>
+              )}
+              <h1 className={`font-black tracking-tight transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'text-7xl md:text-8xl lg:text-9xl' : 'text-2xl'}`} data-testid="text-page-title">
+                <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent">Deep YT</span>{' '}
+                <span className="bg-gradient-to-r from-red-500 to-rose-600 bg-clip-text text-transparent">Search Analyze</span>
+              </h1>
             </div>
+            {(!isSearchActive && !hasResults && !loading) && (
+              <p className="text-muted-foreground mt-4 text-lg max-w-xl mx-auto">
+                Powerful AI-driven YouTube intelligence for videos, channels & content discovery
+              </p>
+            )}
           </div>
 
           {/* Professional Search Bar */}
