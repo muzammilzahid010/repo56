@@ -4896,6 +4896,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available Inworld TTS voices
+  app.get("/api/inworld-tts/voices", requireAuth, async (req, res) => {
+    try {
+      const lang = req.query.language as string || "en";
+      
+      // Get API key from database tokens
+      const { inworldTokens } = await import("@shared/schema");
+      const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isActive, true));
+      
+      if (!tokens || tokens.length === 0) {
+        return res.status(400).json({ error: "No Inworld API keys configured" });
+      }
+      
+      const apiKey = tokens[0].apiKey;
+      
+      // Call Inworld API to get voices
+      const response = await fetch(`https://api.inworld.ai/tts/v1/voices?filter=language=${lang}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Basic ${apiKey}`,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`[Inworld Voices] API error: ${response.status} - ${errorData}`);
+        return res.status(response.status).json({ error: `Inworld API error: ${response.statusText}` });
+      }
+      
+      const data = await response.json();
+      console.log(`[Inworld Voices] Fetched ${data.voices?.length || 0} voices for language: ${lang}`);
+      
+      res.json({ success: true, voices: data.voices || [] });
+    } catch (error: any) {
+      console.error("[Inworld Voices] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch voices" });
+    }
+  });
+
   // Voice Cloning endpoint - clone a voice from audio sample
   app.post("/api/inworld-tts/clone", requireAuth, async (req, res) => {
     try {

@@ -14,51 +14,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Play, Pause, Download, Volume2, Sparkles, Zap, RotateCcw, Upload, Mic, UserCircle } from "lucide-react";
 import UserPanelLayout from "@/layouts/UserPanelLayout";
 
-const INWORLD_VOICES = [
-  // English voices
-  { id: "Timothy", name: "Timothy", gender: "Male", style: "Warm & Friendly", languages: ["en"] },
-  { id: "Luna", name: "Luna", gender: "Female", style: "Calm & Soothing", languages: ["en"] },
-  { id: "Marcus", name: "Marcus", gender: "Male", style: "Professional", languages: ["en"] },
-  { id: "Elena", name: "Elena", gender: "Female", style: "Energetic", languages: ["en", "es"] },
-  { id: "James", name: "James", gender: "Male", style: "Authoritative", languages: ["en"] },
-  { id: "Sophia", name: "Sophia", gender: "Female", style: "Warm & Expressive", languages: ["en"] },
-  { id: "Oliver", name: "Oliver", gender: "Male", style: "Youthful", languages: ["en"] },
-  { id: "Emma", name: "Emma", gender: "Female", style: "Friendly", languages: ["en"] },
-  // Chinese voices
-  { id: "Xiaomei", name: "Xiaomei", gender: "Female", style: "Warm & Friendly", languages: ["zh"] },
-  { id: "Wei", name: "Wei", gender: "Male", style: "Professional", languages: ["zh"] },
-  { id: "Liling", name: "Liling", gender: "Female", style: "Energetic", languages: ["zh"] },
-  // Spanish voices
-  { id: "Carlos", name: "Carlos", gender: "Male", style: "Warm & Friendly", languages: ["es"] },
-  { id: "Maria", name: "Maria", gender: "Female", style: "Professional", languages: ["es"] },
-  // French voices
-  { id: "Pierre", name: "Pierre", gender: "Male", style: "Professional", languages: ["fr"] },
-  { id: "Claire", name: "Claire", gender: "Female", style: "Warm & Friendly", languages: ["fr"] },
-  // German voices
-  { id: "Hans", name: "Hans", gender: "Male", style: "Professional", languages: ["de"] },
-  { id: "Anna", name: "Anna", gender: "Female", style: "Friendly", languages: ["de"] },
-  // Japanese voices
-  { id: "Yuki", name: "Yuki", gender: "Female", style: "Calm & Soothing", languages: ["ja"] },
-  { id: "Takeshi", name: "Takeshi", gender: "Male", style: "Professional", languages: ["ja"] },
-  // Korean voices
-  { id: "Jisoo", name: "Jisoo", gender: "Female", style: "Warm & Friendly", languages: ["ko"] },
-  { id: "Minho", name: "Minho", gender: "Male", style: "Energetic", languages: ["ko"] },
-  // Hindi voices
-  { id: "Priya", name: "Priya", gender: "Female", style: "Warm & Friendly", languages: ["hi"] },
-  { id: "Raj", name: "Raj", gender: "Male", style: "Professional", languages: ["hi"] },
-  // Arabic voices
-  { id: "Fatima", name: "Fatima", gender: "Female", style: "Professional", languages: ["ar"] },
-  { id: "Ahmed", name: "Ahmed", gender: "Male", style: "Authoritative", languages: ["ar"] },
-  // Russian voices
-  { id: "Natasha", name: "Natasha", gender: "Female", style: "Warm & Friendly", languages: ["ru"] },
-  { id: "Ivan", name: "Ivan", gender: "Male", style: "Professional", languages: ["ru"] },
-  // Portuguese voices
-  { id: "Joao", name: "Joao", gender: "Male", style: "Friendly", languages: ["pt"] },
-  { id: "Ana", name: "Ana", gender: "Female", style: "Warm & Expressive", languages: ["pt"] },
-  // Italian voices
-  { id: "Marco", name: "Marco", gender: "Male", style: "Warm & Friendly", languages: ["it"] },
-  { id: "Giulia", name: "Giulia", gender: "Female", style: "Expressive", languages: ["it"] },
-];
+interface InworldVoice {
+  voiceId: string;
+  displayName?: string;
+  description?: string;
+  languages?: string[];
+  gender?: string;
+  ageGroup?: string;
+  accent?: string;
+}
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -146,19 +110,28 @@ export default function VoiceCloningInworld() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Filter voices based on selected language
-  const filteredVoices = INWORLD_VOICES.filter(v => v.languages.includes(language));
+  // Fetch voices from Inworld API based on language
+  const { data: voicesData, isLoading: isLoadingVoices } = useQuery<{ success: boolean; voices: InworldVoice[] }>({
+    queryKey: ['/api/inworld-tts/voices', language],
+    queryFn: async () => {
+      const response = await fetch(`/api/inworld-tts/voices?language=${language}`, {
+        credentials: 'include'
+      });
+      return response.json();
+    },
+  });
+
+  const availableVoices = voicesData?.voices || [];
   
-  // Auto-select first voice when language changes
+  // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
-    const voicesForLang = INWORLD_VOICES.filter(v => v.languages.includes(language));
-    const currentVoiceSupportsLang = INWORLD_VOICES.find(v => v.id === voice)?.languages.includes(language);
-    
-    // Only change voice if current voice doesn't support the new language
-    if (!currentVoiceSupportsLang && voicesForLang.length > 0) {
-      setVoice(voicesForLang[0].id);
+    if (availableVoices.length > 0) {
+      const currentVoiceExists = availableVoices.some(v => v.voiceId === voice);
+      if (!currentVoiceExists) {
+        setVoice(availableVoices[0].voiceId);
+      }
     }
-  }, [language]);
+  }, [availableVoices, language]);
 
   const { data: session } = useQuery<{
     authenticated: boolean;
@@ -642,16 +615,29 @@ export default function VoiceCloningInworld() {
                             </div>
                           </>
                         )}
-                        {filteredVoices.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{v.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ({v.gender} - {v.style})
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {isLoadingVoices ? (
+                          <div className="px-2 py-3 text-center text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                            Loading voices...
+                          </div>
+                        ) : availableVoices.length > 0 ? (
+                          availableVoices.map((v) => (
+                            <SelectItem key={v.voiceId} value={v.voiceId}>
+                              <div className="flex items-center gap-2">
+                                <span>{v.displayName || v.voiceId}</span>
+                                {v.gender && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({v.gender}{v.accent ? ` - ${v.accent}` : ''})
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-3 text-center text-muted-foreground text-sm">
+                            No voices available for this language
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
