@@ -593,10 +593,20 @@ export default function VoiceCloningInworld() {
                   className="min-h-[200px] resize-none"
                   data-testid="input-text"
                 />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{characterCount} characters</span>
-                  <span>{wordCount} words</span>
+                <div className="flex justify-between text-sm">
+                  <span className={characterCount > 2000 ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                    {characterCount} / 2000 characters
+                    {characterCount > 2000 && " (exceeds limit)"}
+                  </span>
+                  <span className="text-muted-foreground">{wordCount} words</span>
                 </div>
+                {characterCount > 2000 && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      Text exceeds 2000 character limit. Please shorten your text to generate audio.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -744,7 +754,7 @@ export default function VoiceCloningInworld() {
                   className="w-full"
                   size="lg"
                   onClick={() => generateMutation.mutate()}
-                  disabled={!text.trim() || generateMutation.isPending}
+                  disabled={!text.trim() || generateMutation.isPending || text.length > 2000}
                   data-testid="button-generate"
                 >
                   {generateMutation.isPending ? (
