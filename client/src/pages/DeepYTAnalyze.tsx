@@ -394,17 +394,17 @@ export default function DeepYTAnalyze() {
 
         {!loading && !hasResults && !isSearchActive && (
           <div className="py-8 mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 items-stretch">
               {/* Video Analysis Card */}
               <div 
-                className="group relative cursor-pointer"
+                className="group relative cursor-pointer h-full"
                 onClick={() => setInput("https://youtube.com/watch?v=")}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-rose-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-red-200 dark:group-hover:border-red-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-red-500/10">
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-red-200 dark:group-hover:border-red-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-red-500/10 h-full">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-red-100 to-transparent dark:from-red-950/50 rounded-bl-full opacity-50"></div>
-                  <CardContent className="p-8 text-center relative">
-                    <div className="relative inline-flex mb-6">
+                  <CardContent className="p-8 text-center relative h-full flex flex-col">
+                    <div className="relative inline-flex mb-6 mx-auto">
                       <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform duration-300">
                         <Play className="w-8 h-8 text-white" />
                       </div>
@@ -413,8 +413,8 @@ export default function DeepYTAnalyze() {
                       </div>
                     </div>
                     <h3 className="text-lg font-bold mb-3 group-hover:text-red-600 transition-colors">Video Analysis</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Get monetization status, views, likes, audience retention heatmap & technical details
+                    <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                      Monetization, views, likes & retention heatmap
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
                       <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-full">Views</span>
@@ -427,14 +427,14 @@ export default function DeepYTAnalyze() {
               
               {/* Channel Intelligence Card */}
               <div 
-                className="group relative cursor-pointer"
+                className="group relative cursor-pointer h-full"
                 onClick={() => setInput("@")}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-violet-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-purple-200 dark:group-hover:border-purple-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-purple-500/10">
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-purple-200 dark:group-hover:border-purple-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-purple-500/10 h-full">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100 to-transparent dark:from-purple-950/50 rounded-bl-full opacity-50"></div>
-                  <CardContent className="p-8 text-center relative">
-                    <div className="relative inline-flex mb-6">
+                  <CardContent className="p-8 text-center relative h-full flex flex-col">
+                    <div className="relative inline-flex mb-6 mx-auto">
                       <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-300">
                         <Users className="w-8 h-8 text-white" />
                       </div>
@@ -443,8 +443,8 @@ export default function DeepYTAnalyze() {
                       </div>
                     </div>
                     <h3 className="text-lg font-bold mb-3 group-hover:text-purple-600 transition-colors">Channel Intelligence</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Analyze subscribers, total videos, views, recent uploads & channel growth metrics
+                    <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                      Subscribers, videos & channel growth metrics
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
                       <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 rounded-full">Subs</span>
@@ -457,14 +457,14 @@ export default function DeepYTAnalyze() {
               
               {/* SERP Search Card */}
               <div 
-                className="group relative cursor-pointer"
+                className="group relative cursor-pointer h-full"
                 onClick={() => setInput("")}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-blue-500/10">
+                <Card className="relative overflow-hidden border-2 border-transparent group-hover:border-blue-200 dark:group-hover:border-blue-900 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-blue-500/10 h-full">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-100 to-transparent dark:from-blue-950/50 rounded-bl-full opacity-50"></div>
-                  <CardContent className="p-8 text-center relative">
-                    <div className="relative inline-flex mb-6">
+                  <CardContent className="p-8 text-center relative h-full flex flex-col">
+                    <div className="relative inline-flex mb-6 mx-auto">
                       <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
                         <Search className="w-8 h-8 text-white" />
                       </div>
@@ -473,8 +473,8 @@ export default function DeepYTAnalyze() {
                       </div>
                     </div>
                     <h3 className="text-lg font-bold mb-3 group-hover:text-blue-600 transition-colors">SERP Search</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Search YouTube with filters for relevance, date, views, type & duration
+                    <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+                      Search with filters for relevance, type & duration
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
                       <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full">Filters</span>
