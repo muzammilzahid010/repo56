@@ -175,9 +175,9 @@ export default function DeepYTAnalyze() {
                   <Youtube className="text-white w-5 h-5" />
                 </div>
               )}
-              <h1 className={`font-black tracking-tight transition-all duration-300 ${!isSearchActive && !hasResults && !loading ? 'text-7xl md:text-8xl lg:text-9xl' : 'text-2xl'}`} data-testid="text-page-title">
-                <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent">Deep YT</span>{' '}
-                <span className="bg-gradient-to-r from-red-500 to-rose-600 bg-clip-text text-transparent">Search Analyze</span>
+              <h1 className={`font-black tracking-tighter transition-all duration-300 whitespace-nowrap ${!isSearchActive && !hasResults && !loading ? 'text-5xl sm:text-6xl md:text-7xl lg:text-8xl' : 'text-2xl'}`} data-testid="text-page-title">
+                <span className="bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent">Deep YT Search</span>{' '}
+                <span className="bg-gradient-to-r from-red-500 to-rose-600 bg-clip-text text-transparent">Analyze</span>
               </h1>
             </div>
             {(!isSearchActive && !hasResults && !loading) && (
