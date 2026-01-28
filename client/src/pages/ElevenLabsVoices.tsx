@@ -254,7 +254,7 @@ export default function ElevenLabsVoices() {
       });
 
       // Step 2: Clone the voice using Inworld API
-      const cloneResponse = await apiRequest("POST", "/api/inworld-tts/clone", {
+      const cloneResponse = await apiRequest("POST", "/api/voice-ai/clone", {
         displayName: voice.name,
         langCode: "EN_US",
         audioData: base64Audio,

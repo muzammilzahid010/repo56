@@ -125,9 +125,9 @@ export default function VoiceCloningInworld() {
 
   // Fetch voices from API based on language
   const { data: voicesData, isLoading: isLoadingVoices } = useQuery<{ success: boolean; voices: AIVoice[] }>({
-    queryKey: ['/api/inworld-tts/voices', language],
+    queryKey: ['/api/voice-ai/voices', language],
     queryFn: async () => {
-      const response = await fetch(`/api/inworld-tts/voices?language=${language}`, {
+      const response = await fetch(`/api/voice-ai/voices?language=${language}`, {
         credentials: 'include'
       });
       return response.json();
@@ -155,7 +155,7 @@ export default function VoiceCloningInworld() {
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/inworld-tts/generate", {
+      const response = await apiRequest("POST", "/api/voice-ai/generate", {
         text,
         voice,
         model,
@@ -230,7 +230,7 @@ export default function VoiceCloningInworld() {
         reader.readAsDataURL(audioFile);
       });
       
-      const response = await apiRequest("POST", "/api/inworld-tts/clone", {
+      const response = await apiRequest("POST", "/api/voice-ai/clone", {
         displayName: cloneVoiceName,
         langCode: cloneLangCode,
         audioData: base64,

@@ -4854,7 +4854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return combined.toString('base64');
   }
 
-  app.post("/api/inworld-tts/generate", requireAuth, async (req, res) => {
+  app.post("/api/voice-ai/generate", requireAuth, async (req, res) => {
     try {
       const { text, voice, model, language, speed, temperature } = req.body;
       
@@ -4964,8 +4964,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get available Inworld TTS voices
-  app.get("/api/inworld-tts/voices", requireAuth, async (req, res) => {
+  // Get available AI TTS voices
+  app.get("/api/voice-ai/voices", requireAuth, async (req, res) => {
     try {
       const lang = req.query.language as string || "en";
       
@@ -5004,7 +5004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Voice Cloning endpoint - clone a voice from audio sample
-  app.post("/api/inworld-tts/clone", requireAuth, async (req, res) => {
+  app.post("/api/voice-ai/clone", requireAuth, async (req, res) => {
     try {
       const { displayName, langCode, audioData, transcription, description, removeBackgroundNoise } = req.body;
       
