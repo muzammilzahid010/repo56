@@ -640,18 +640,13 @@ export default function VoiceCloningInworld() {
                             Loading voices...
                           </div>
                         ) : availableVoices.length > 0 ? (
-                          availableVoices.map((v) => {
-                            const isCloned = clonedVoices.some(cv => cv.voiceId === v.voiceId || cv.displayName === v.displayName);
-                            return (
-                              <SelectItem 
-                                key={v.voiceId} 
-                                value={v.voiceId}
-                                className={isCloned ? "text-purple-600 font-medium" : ""}
-                              >
+                          availableVoices
+                            .filter((v) => !clonedVoices.some(cv => cv.voiceId === v.voiceId || cv.displayName === v.displayName))
+                            .map((v) => (
+                              <SelectItem key={v.voiceId} value={v.voiceId}>
                                 {v.displayName || v.voiceId}
                               </SelectItem>
-                            );
-                          })
+                            ))
                         ) : (
                           <div className="px-2 py-3 text-center text-muted-foreground text-sm">
                             No voices available for this language
