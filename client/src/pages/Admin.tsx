@@ -3588,6 +3588,43 @@ export default function Admin() {
                         ElevenLabs API key for fetching official voices with preview URLs
                       </FormDescription>
                       <FormMessage />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/admin/elevenlabs-voices/sync', {
+                              method: 'POST',
+                              credentials: 'include',
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                              toast({
+                                title: "Voices Synced",
+                                description: `Added ${data.added} voices, updated ${data.updated}`,
+                              });
+                            } else {
+                              toast({
+                                title: "Sync Failed",
+                                description: data.error || "Failed to sync voices",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to sync voices",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        data-testid="button-sync-elevenlabs"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Sync Voices from API
+                      </Button>
                     </FormItem>
                   )}
                 />
