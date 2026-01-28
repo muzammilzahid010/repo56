@@ -265,12 +265,52 @@ export default function DeepYTAnalyze() {
         </div>
 
         {loading && (
-          <div className="py-20 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-            <p className="text-sm text-muted-foreground mt-4 animate-pulse">
-              Connecting to YouTube Intelligence Network...
-            </p>
-          </div>
+          <Card className="my-8 overflow-hidden">
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center">
+                {/* Animated Logo */}
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center animate-pulse">
+                    <Youtube className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  </div>
+                </div>
+                
+                {/* Status Text */}
+                <h3 className="text-xl font-bold mb-2">Analyzing Content</h3>
+                <p className="text-muted-foreground mb-6">Please wait while we fetch data from YouTube...</p>
+                
+                {/* Progress Steps */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-muted-foreground">Connected</span>
+                  </div>
+                  <div className="w-8 h-0.5 bg-muted"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full animate-bounce"></div>
+                    <span className="text-sm font-medium">Fetching Data</span>
+                  </div>
+                  <div className="w-8 h-0.5 bg-muted"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-muted rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">Processing</span>
+                  </div>
+                </div>
+                
+                {/* Loading Bar */}
+                <div className="w-full max-w-md h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-red-500 to-rose-600 rounded-full animate-pulse" style={{width: '60%', animation: 'pulse 1s ease-in-out infinite'}}></div>
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  This may take a few seconds depending on the content type...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {!loading && !hasResults && !isSearchActive && (
