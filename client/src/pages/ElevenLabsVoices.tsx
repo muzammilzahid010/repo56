@@ -294,7 +294,7 @@ export default function ElevenLabsVoices() {
       localStorage.setItem("clonedVoices", JSON.stringify(existingVoices));
 
       // Navigate to TTS page with the cloned voice pre-selected
-      setLocation(`/voice-cloning-inworld?voice=${encodeURIComponent(clonedVoice.voiceId)}`);
+      setLocation(`/voice-ai?voice=${encodeURIComponent(clonedVoice.voiceId)}`);
 
     } catch (error: any) {
       console.error("Use This Voice error:", error);

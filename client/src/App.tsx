@@ -63,7 +63,7 @@ function Router() {
       <Route path="/community-voices" component={CommunityVoices} />
       <Route path="/text-to-speech-v2" component={TextToSpeechV2} />
       <Route path="/voice-cloning-v2" component={VoiceCloningV2} />
-      <Route path="/voice-cloning-inworld" component={VoiceCloningInworld} />
+      <Route path="/voice-ai" component={VoiceCloningInworld} />
       <Route path="/affiliate" component={Affiliate} />
       <Route path="/ugc-videos" component={UGCVideos} />
       <Route path="/elevenlabs-voices" component={ElevenLabsVoices} />
