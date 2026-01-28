@@ -619,16 +619,13 @@ export default function VoiceCloningInworld() {
                       <SelectContent>
                         {clonedVoices.length > 0 && (
                           <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-purple-600">
+                            <div className="px-2 py-1.5 text-xs font-semibold text-purple-600 flex items-center gap-1">
+                              <UserCircle className="w-3 h-3" />
                               Your Cloned Voices
                             </div>
                             {clonedVoices.map((v) => (
                               <SelectItem key={v.voiceId} value={v.voiceId}>
-                                <div className="flex items-center gap-2">
-                                  <UserCircle className="w-4 h-4 text-purple-500" />
-                                  <span>{v.displayName}</span>
-                                  <span className="text-xs text-purple-500">(Cloned)</span>
-                                </div>
+                                {v.displayName}
                               </SelectItem>
                             ))}
                             <div className="my-1 border-t" />
