@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLocation, useSearch } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,13 +83,30 @@ const LANG_CODES = [
 
 export default function VoiceCloningInworld() {
   const { toast } = useToast();
+  const searchString = useSearch();
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Parse URL parameters
+  const urlParams = new URLSearchParams(searchString);
+  const voiceFromUrl = urlParams.get("voice");
+  
   const [text, setText] = useState("");
-  const [voice, setVoice] = useState("Timothy");
+  const [voice, setVoice] = useState(voiceFromUrl || "Timothy");
   const [model, setModel] = useState("inworld/tts-1.5-mini");
   const [language, setLanguage] = useState("en");
+  
+  // Set voice from URL parameter on initial load
+  useEffect(() => {
+    if (voiceFromUrl) {
+      setVoice(voiceFromUrl);
+      // Show toast that voice is pre-selected
+      toast({
+        title: "Voice Selected",
+        description: "Your cloned voice is ready to use!",
+      });
+    }
+  }, []);
   const [speed, setSpeed] = useState([1.0]);
   const [temperature, setTemperature] = useState([0.7]);
   

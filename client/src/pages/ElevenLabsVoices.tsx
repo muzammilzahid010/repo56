@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, Filter, X, Copy, Check, RefreshCw } from "lucide-react";
+import { Loader2, Play, Pause, Search, Volume2, ChevronLeft, ChevronRight, Mic2, Filter, X, Copy, Check, RefreshCw, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // Use local database API (fallback to external if database is empty)
 const LOCAL_API_URL = '/api/elevenlabs-voices';
@@ -71,6 +73,7 @@ function extractLanguage(description: string): string {
 
 export default function ElevenLabsVoices() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +81,7 @@ export default function ElevenLabsVoices() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [languageFilter, setLanguageFilter] = useState<string>("all");
+  const [cloningVoiceId, setCloningVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: allVoices = [], isLoading, refetch, isFetching, error } = useQuery<Voice[]>({
@@ -213,6 +217,95 @@ export default function ElevenLabsVoices() {
     setSearchInput("");
     setGenderFilter("all");
     setLanguageFilter("all");
+  };
+
+  // Use This Voice - download sample, clone it, then navigate to TTS page
+  const useThisVoice = async (voice: Voice) => {
+    setCloningVoiceId(voice.voice_id);
+    
+    try {
+      toast({
+        title: "Downloading voice sample...",
+        description: `Preparing to clone "${voice.name}"`,
+      });
+
+      // Step 1: Download the preview audio and convert to base64
+      const audioResponse = await fetch(voice.preview_url);
+      if (!audioResponse.ok) {
+        throw new Error("Failed to download voice sample");
+      }
+      
+      const audioBlob = await audioResponse.blob();
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          // Remove data URL prefix to get just base64
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      toast({
+        title: "Cloning voice...",
+        description: `Creating voice clone "${voice.name}"`,
+      });
+
+      // Step 2: Clone the voice using Inworld API
+      const cloneResponse = await apiRequest("POST", "/api/inworld-tts/clone", {
+        displayName: voice.name,
+        langCode: "EN_US",
+        audioData: base64Audio,
+        description: voice.description || `Cloned from ElevenLabs voice ${voice.voice_id}`,
+        removeBackgroundNoise: true,
+      });
+
+      const cloneResult = await cloneResponse.json();
+
+      if (!cloneResult.success || !cloneResult.voice) {
+        throw new Error(cloneResult.error || "Failed to clone voice");
+      }
+
+      toast({
+        title: "Voice cloned successfully!",
+        description: `"${voice.name}" is ready to use`,
+      });
+
+      // Step 3: Save cloned voice to localStorage and navigate to TTS page
+      const clonedVoice = {
+        voiceId: cloneResult.voice.voiceId,
+        displayName: voice.name,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Get existing cloned voices from localStorage
+      const existingVoices = JSON.parse(localStorage.getItem("clonedVoices") || "[]");
+      
+      // Check if voice with same ID already exists
+      const voiceIndex = existingVoices.findIndex((v: any) => v.voiceId === clonedVoice.voiceId);
+      if (voiceIndex >= 0) {
+        existingVoices[voiceIndex] = clonedVoice;
+      } else {
+        existingVoices.unshift(clonedVoice);
+      }
+      
+      localStorage.setItem("clonedVoices", JSON.stringify(existingVoices));
+
+      // Navigate to TTS page with the cloned voice pre-selected
+      setLocation(`/voice-cloning-inworld?voice=${encodeURIComponent(clonedVoice.voiceId)}`);
+
+    } catch (error: any) {
+      console.error("Use This Voice error:", error);
+      toast({
+        title: "Failed to clone voice",
+        description: error.message || "An error occurred while cloning the voice",
+        variant: "destructive",
+      });
+    } finally {
+      setCloningVoiceId(null);
+    }
   };
 
   return (
@@ -386,21 +479,25 @@ export default function ElevenLabsVoices() {
                       {voice.description || "No description available"}
                     </p>
 
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <code className="flex-1 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1.5 rounded truncate font-mono text-gray-600 dark:text-gray-400">
-                        {voice.voice_id}
-                      </code>
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        className="shrink-0 w-8 h-8"
-                        onClick={() => copyVoiceId(voice.voice_id)}
-                        data-testid={`button-copy-${voice.voice_id}`}
+                        variant="default"
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                        onClick={() => useThisVoice(voice)}
+                        disabled={cloningVoiceId === voice.voice_id}
+                        data-testid={`button-use-voice-${voice.voice_id}`}
                       >
-                        {copiedId === voice.voice_id ? (
-                          <Check className="w-4 h-4 text-green-500" />
+                        {cloningVoiceId === voice.voice_id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Cloning...
+                          </>
                         ) : (
-                          <Copy className="w-4 h-4" />
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Use This Voice
+                          </>
                         )}
                       </Button>
                     </div>
