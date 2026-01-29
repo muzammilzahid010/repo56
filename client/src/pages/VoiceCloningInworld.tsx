@@ -250,10 +250,29 @@ export default function VoiceCloningInworld() {
       
       // If 404 error (voice not found)
       if (data.error && data.error.includes("Not Found")) {
-        // If we have original ElevenLabs voice, re-clone and retry
-        if (originalElVoice) {
-          console.log("[Voice AI] Voice not found, re-cloning:", originalElVoice.name);
-          const newVoiceId = await cloneVoice(originalElVoice);
+        console.log("[Voice AI] Voice not found, attempting to find and re-clone...");
+        
+        // Try to find voice in ElevenLabs library
+        let voiceToClone = originalElVoice;
+        
+        if (!voiceToClone) {
+          // Get voice name from cloned voices or available voices
+          const clonedVoice = clonedVoices.find(cv => cv.voiceId === voiceToUse);
+          const voiceName = clonedVoice?.displayName || availableVoices.find(v => v.voiceId === voiceToUse)?.displayName;
+          
+          if (voiceName) {
+            // Search in ElevenLabs library for matching voice
+            voiceToClone = elevenlabsVoices.find(v => 
+              v.name.toLowerCase() === voiceName.toLowerCase() ||
+              v.name.toLowerCase().includes(voiceName.toLowerCase())
+            ) || null;
+            console.log(`[Voice AI] Found matching voice in ElevenLabs: ${voiceToClone?.name || 'none'}`);
+          }
+        }
+        
+        if (voiceToClone && voiceToClone.preview_url) {
+          console.log("[Voice AI] Re-cloning voice:", voiceToClone.name);
+          const newVoiceId = await cloneVoice(voiceToClone);
           
           // Retry generation with new voice
           const retryResponse = await apiRequest("POST", "/api/voice-ai/generate", {
@@ -265,15 +284,14 @@ export default function VoiceCloningInworld() {
           });
           return retryResponse.json() as Promise<GenerateResponse>;
         } else {
-          // Clear all cloned voices from localStorage as they're now invalid
-          console.log("[Voice AI] Voice not found, clearing cached cloned voices");
+          // Clear invalid cloned voices
+          console.log("[Voice AI] Could not find voice to re-clone, clearing cache");
           setClonedVoices([]);
           localStorage.removeItem("clonedVoices");
           
-          // Return user-friendly error
           return {
             success: false,
-            error: "Voice configuration changed. Please select a voice from the ElevenLabs section and try again."
+            error: "Voice not available. Please select a different voice from ElevenLabs section."
           } as GenerateResponse;
         }
       }
