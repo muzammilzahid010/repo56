@@ -285,6 +285,7 @@ export default function History() {
       const response = await fetch("/api/video-history", {
         method: "DELETE",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
       });
       if (!response.ok) {
         const data = await response.json();
