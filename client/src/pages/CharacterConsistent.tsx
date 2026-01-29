@@ -18,7 +18,9 @@ import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardMedia from '@mui/material/CardMedia';
 import Chip from '@mui/material/Chip';
-import { Users, Sparkles, X, Upload, Image as ImageIcon, Download, Zap, CheckCircle, AlertCircle, Loader2, Film } from "lucide-react";
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import { Users, Sparkles, X, Upload, Image as ImageIcon, Download, Zap, CheckCircle, AlertCircle, Loader2, Film, Trash2 } from "lucide-react";
 
 interface GeneratedResult {
   prompt: string;
@@ -44,6 +46,7 @@ export default function CharacterConsistent() {
   const [prompts, setPrompts] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<GeneratedResult[]>([]);
+  const [clearPrevious, setClearPrevious] = useState(true);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -315,7 +318,13 @@ export default function CharacterConsistent() {
 
     // IMMEDIATELY create boxes for all prompts (like bulk generator)
     setIsGenerating(true);
-    setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
+    
+    // Clear previous results if checkbox is enabled, otherwise append
+    if (clearPrevious) {
+      setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
+    } else {
+      setResults(prev => [...promptList.map(prompt => ({ prompt, status: 'pending' as const })), ...prev]);
+    }
 
     try {
       const response = await fetch("/api/character-video-stream", {
@@ -681,6 +690,29 @@ export default function CharacterConsistent() {
                   },
                 }}
                 data-testid="textarea-prompts"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={clearPrevious} 
+                    onChange={(e) => setClearPrevious(e.target.checked)}
+                    sx={{ 
+                      color: '#1a1a2e',
+                      '&.Mui-checked': { color: '#1a1a2e' }
+                    }}
+                    data-testid="checkbox-clear-previous"
+                  />
+                }
+                label={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Trash2 className="w-4 h-4" style={{ color: '#1a1a2e' }} />
+                    <Typography sx={{ color: '#1a1a2e', fontSize: '0.9rem', fontWeight: 500 }}>
+                      Clear previous generation before starting new
+                    </Typography>
+                  </Stack>
+                }
+                sx={{ mb: 2 }}
               />
 
               <Button

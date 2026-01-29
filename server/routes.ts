@@ -9235,7 +9235,7 @@ Only respond with the JSON array, no additional text.`;
       }
 
       // Concurrent processing configuration
-      const MAX_CONCURRENT = 50;
+      const MAX_CONCURRENT = 30;
       let activeCount = 0;
       let nextIndex = 0;
       let completedCount = 0;
@@ -9834,7 +9834,7 @@ Only respond with the JSON array, no additional text.`;
       sendEvent('entries_created', { count: videoEntries.length, message: 'All video entries created - check History page!' });
 
       // Concurrent processing configuration
-      const MAX_CONCURRENT = 50;
+      const MAX_CONCURRENT = 30;
       let activeCount = 0;
       let nextIndex = 0;
       let completedCount = 0;
