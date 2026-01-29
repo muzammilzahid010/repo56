@@ -88,12 +88,12 @@ setInterval(() => {
   }
 }, 60000); // Every minute
 
-// Cleanup expired cloned voices - delete from Cartesia API after 1 hour
+// Cleanup expired cloned voices - delete from Inworld API after 1 hour
 const cleanupExpiredClonedVoices = async () => {
   try {
-    const { clonedVoicesTracker } = await import("@shared/schema");
+    const { clonedVoicesTracker, inworldTokens } = await import("@shared/schema");
     const { db } = await import("./db");
-    const { lt, sql } = await import("drizzle-orm");
+    const { lt, eq } = await import("drizzle-orm");
     
     // Get all expired voices
     const now = new Date().toISOString();
@@ -104,21 +104,39 @@ const cleanupExpiredClonedVoices = async () => {
     
     console.log(`[Voice Cleanup] Found ${expiredVoices.length} expired voices to delete`);
     
-    const cartesia = await import("./cartesia");
+    // Get Inworld API key for deletion
+    const tokens = await db.select().from(inworldTokens).where(eq(inworldTokens.isActive, true));
+    const apiKey = tokens[0]?.apiKey;
+    
+    if (!apiKey) {
+      console.log(`[Voice Cleanup] No Inworld API key available for deletion`);
+      return;
+    }
     
     for (const voice of expiredVoices) {
       try {
-        const result = await cartesia.deleteVoice(voice.voiceId);
-        if (result.success) {
+        // Delete from Inworld API
+        const response = await fetch(`https://api.inworld.ai/voices/v1/voices/${voice.voiceId}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Basic ${apiKey}`,
+          },
+        });
+        
+        if (response.ok || response.status === 404) {
           console.log(`[Voice Cleanup] Deleted voice: ${voice.voiceName} (${voice.voiceId})`);
         } else {
-          console.log(`[Voice Cleanup] Failed to delete voice ${voice.voiceId}: ${result.error}`);
+          console.log(`[Voice Cleanup] Failed to delete voice ${voice.voiceId}: ${response.status}`);
         }
+        
         // Remove from tracker regardless of API result
         await db.delete(clonedVoicesTracker)
-          .where(sql`${clonedVoicesTracker.voiceId} = ${voice.voiceId}`);
+          .where(eq(clonedVoicesTracker.voiceId, voice.voiceId));
       } catch (err) {
         console.error(`[Voice Cleanup] Error deleting voice ${voice.voiceId}:`, err);
+        // Still remove from tracker on error
+        await db.delete(clonedVoicesTracker)
+          .where(eq(clonedVoicesTracker.voiceId, voice.voiceId));
       }
     }
   } catch (error) {
@@ -5508,12 +5526,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const data = await response.json();
-      console.log(`[Voice Clone] Voice cloned successfully:`, data.voice?.voiceId);
+      const voiceId = data.voice?.voiceId;
+      console.log(`[Voice Clone] Voice cloned successfully:`, voiceId);
+      
+      // Track voice for auto-deletion after 1 hour
+      if (voiceId) {
+        try {
+          const { clonedVoicesTracker } = await import("@shared/schema");
+          const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+          await db.insert(clonedVoicesTracker).values({
+            voiceId,
+            voiceName: name,
+            userId: (req as any).user?.id || null,
+            expiresAt,
+          }).onConflictDoNothing();
+          console.log(`[Voice Clone] Voice scheduled for deletion at: ${expiresAt}`);
+        } catch (trackErr) {
+          console.log(`[Voice Clone] Could not track voice:`, trackErr);
+        }
+      }
       
       res.json({ 
         success: true, 
         voice: data.voice,
-        voiceId: data.voice?.voiceId,
+        voiceId,
         warnings: data.audioSamplesValidated?.[0]?.warnings || []
       });
     } catch (error: any) {
