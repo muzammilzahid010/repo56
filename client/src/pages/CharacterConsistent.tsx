@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +48,9 @@ export default function CharacterConsistent() {
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const currentBatchIdRef = useRef<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
 
   const { data: maintenanceData } = useQuery<{ maintenance: ToolMaintenance }>({
     queryKey: ["/api/tool-maintenance"],
@@ -186,6 +189,94 @@ export default function CharacterConsistent() {
       .filter(p => p.length >= 3);
   };
 
+  // Polling fallback: When SSE stream ends but videos are not complete, poll video-history API
+  const startPollingFallback = useCallback(async () => {
+    const batchId = currentBatchIdRef.current;
+    if (!batchId) return;
+    
+    setIsPolling(true);
+    console.log('[CharacterConsistent] Starting polling fallback for batch:', batchId);
+    
+    const pollVideoHistory = async () => {
+      try {
+        const response = await fetch(`/api/video-history?limit=100`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const videos = data.videos || [];
+        
+        // Filter videos for this batch
+        const batchVideos = videos.filter((v: any) => v.batchId === batchId);
+        
+        if (batchVideos.length === 0) return;
+        
+        // Update results based on video history
+        setResults(prev => {
+          const updated = [...prev];
+          batchVideos.forEach((video: any) => {
+            // Match by prompt or sceneNumber
+            const sceneIndex = (video.sceneNumber || 1) - 1;
+            if (sceneIndex >= 0 && sceneIndex < updated.length) {
+              if (video.status === 'completed' && video.videoUrl) {
+                updated[sceneIndex] = {
+                  ...updated[sceneIndex],
+                  status: 'completed',
+                  videoUrl: video.videoUrl,
+                  historyId: video.id
+                };
+              } else if (video.status === 'failed') {
+                updated[sceneIndex] = {
+                  ...updated[sceneIndex],
+                  status: 'failed',
+                  error: video.error || 'Video generation failed'
+                };
+              }
+            }
+          });
+          return updated;
+        });
+        
+        // Check if all videos are complete
+        const completedCount = batchVideos.filter((v: any) => v.status === 'completed' || v.status === 'failed').length;
+        
+        setResults(prev => {
+          const incompleteCount = prev.filter(r => r.status !== 'completed' && r.status !== 'failed').length;
+          if (incompleteCount === 0) {
+            // All done - stop polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            setIsPolling(false);
+            setIsGenerating(false);
+            console.log('[CharacterConsistent] Polling complete - all videos finished');
+          }
+          return prev;
+        });
+        
+      } catch (error) {
+        console.error('[CharacterConsistent] Polling error:', error);
+      }
+    };
+    
+    // Poll immediately, then every 5 seconds
+    pollVideoHistory();
+    pollingIntervalRef.current = setInterval(pollVideoHistory, 5000);
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const handleGenerate = async () => {
     const promptList = parsePrompts();
     
@@ -209,6 +300,14 @@ export default function CharacterConsistent() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    
+    // Clear any existing polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsPolling(false);
+    currentBatchIdRef.current = null;
 
     // Create new AbortController for this batch
     const controller = new AbortController();
@@ -263,7 +362,11 @@ export default function CharacterConsistent() {
             try {
               const data = JSON.parse(dataMatch[1]);
               
-              if (eventType === 'progress') {
+              if (eventType === 'batch_started') {
+                // Capture batchId for polling fallback
+                currentBatchIdRef.current = data.batchId;
+                console.log('[CharacterConsistent] Batch started:', data.batchId);
+              } else if (eventType === 'progress') {
                 setResults(prev => prev.map((item, idx) => {
                   if (idx === data.index) {
                     return { 
@@ -310,8 +413,25 @@ export default function CharacterConsistent() {
     } finally {
       // Only set isGenerating to false if this controller is still active
       if (abortControllerRef.current === controller) {
-        setIsGenerating(false);
         abortControllerRef.current = null;
+        
+        // Check if there are incomplete videos - if so, start polling fallback
+        // Note: We check results in a setTimeout to get the latest state
+        setTimeout(() => {
+          setResults(prev => {
+            const incompleteCount = prev.filter(r => 
+              r.status !== 'completed' && r.status !== 'failed'
+            ).length;
+            
+            if (incompleteCount > 0 && currentBatchIdRef.current) {
+              console.log(`[CharacterConsistent] Stream ended with ${incompleteCount} incomplete videos - starting polling fallback`);
+              startPollingFallback();
+            } else {
+              setIsGenerating(false);
+            }
+            return prev;
+          });
+        }, 100);
       }
     }
   };

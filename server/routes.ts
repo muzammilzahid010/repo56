@@ -9134,6 +9134,9 @@ Only respond with the JSON array, no additional text.`;
       const sessionId = `;${Date.now()}`;
       const workflowId = crypto.randomUUID();
 
+      // Send batchId to client FIRST so they can use it for polling fallback
+      sendEvent('batch_started', { batchId: charStreamBatchId, total: prompts.length });
+
       // STEP 1: Upload character image using uploadUserImage (aisandbox API)
       // This returns mediaGenerationId which can be used with referenceMediaIds for character consistency
       console.log(`[Character Video] Step 1: Uploading character reference image...`);
