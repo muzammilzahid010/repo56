@@ -744,8 +744,14 @@ export default function VoiceCloningInworld() {
                 <Textarea
                   placeholder="Enter your text here... You can use emotional markers like [happy], [sad], [whisper] for expressive speech."
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  maxLength={50000}
+                  onChange={(e) => {
+                    const newText = e.target.value;
+                    if (newText.length <= 50000) {
+                      setText(newText);
+                    } else {
+                      setText(newText.slice(0, 50000));
+                    }
+                  }}
                   className="min-h-[200px] resize-none"
                   data-testid="input-text"
                 />
