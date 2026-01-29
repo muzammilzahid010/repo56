@@ -394,7 +394,16 @@ export default function CharacterConsistent() {
               } else if (eventType === 'complete') {
                 toast({ title: "Generation complete", description: data.message });
               } else if (eventType === 'error') {
-                throw new Error(data.error || 'Stream error');
+                // Mark all pending videos as failed with the error message
+                setResults(prev => prev.map(item => {
+                  if (item.status === 'pending' || item.status === 'uploading_character') {
+                    return { ...item, status: 'failed', error: data.error };
+                  }
+                  return item;
+                }));
+                setIsGenerating(false);
+                toast({ title: "Error", description: data.error, variant: "destructive" });
+                return; // Exit the loop, don't throw
               }
             } catch (parseError) {
               console.error('SSE parse error:', parseError);
