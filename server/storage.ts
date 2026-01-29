@@ -1282,18 +1282,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAllVideoHistory(): Promise<number> {
-    // Batch delete for better performance with large datasets
-    console.log('[Storage] Starting batch video history deletion...');
-    const batchSize = 10000;
+    // Use faster CTID-based batch deletion
+    console.log('[Storage] Starting fast batch video history deletion...');
+    const batchSize = 5000;
     let totalDeleted = 0;
     let deletedInBatch = 0;
     
     do {
-      // Delete in batches using subquery to get IDs
+      // Use CTID for much faster deletion - no index lookup needed
       const result = await db.execute(sql`
         DELETE FROM video_history 
-        WHERE id IN (
-          SELECT id FROM video_history LIMIT ${batchSize}
+        WHERE ctid IN (
+          SELECT ctid FROM video_history LIMIT ${batchSize}
         )
       `);
       deletedInBatch = Number(result.rowCount) || 0;
@@ -1302,7 +1302,7 @@ export class DatabaseStorage implements IStorage {
       if (deletedInBatch > 0) {
         console.log(`[Storage] Deleted batch: ${deletedInBatch} records (total: ${totalDeleted})`);
       }
-    } while (deletedInBatch >= batchSize);
+    } while (deletedInBatch > 0);
     
     console.log(`[Storage] Video history deletion complete. Total deleted: ${totalDeleted}`);
     return totalDeleted;
