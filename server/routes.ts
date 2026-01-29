@@ -5226,6 +5226,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trimmedText = text.trim();
       const charCount = trimmedText.length;
       
+      // Check user's voice character usage (50K limit)
+      const freshUser = await storage.checkAndResetVoiceCharacters(req.session.userId!);
+      if (!freshUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Check plan access for voice tools
+      const toolCheck = canAccessTool(freshUser, "voiceTools");
+      if (!toolCheck.allowed) {
+        return res.status(403).json({ error: toolCheck.reason });
+      }
+      
+      // Check voice character limit (50K for most plans)
+      const charCheck = canUseVoiceCharacters(freshUser, charCount);
+      if (!charCheck.allowed) {
+        return res.status(403).json({ error: charCheck.reason });
+      }
+      
       // Get available tokens from database
       const { inworldTokens, voiceTokenMapping } = await import("@shared/schema");
       const tokens = await db.select().from(inworldTokens)
@@ -5346,6 +5364,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Inworld TTS] No database token selected, using env key - character count not tracked`);
       }
       
+      // Update user's voice character usage (50K limit tracking)
+      const usage = await storage.updateVoiceCharacterUsage(freshUser.id, charCount);
+      console.log(`[Inworld TTS] User ${freshUser.username} used ${charCount} chars, total: ${usage.used}/${usage.limit}`);
+      
       // Combine audio chunks if multiple
       const combinedAudio = concatenateBase64Audio(audioChunks);
       console.log(`[Inworld TTS] Audio generated successfully (MP3 format)${totalChunks > 1 ? ` - combined ${totalChunks} chunks` : ''}`);
@@ -5354,7 +5376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         audioBase64: combinedAudio,
         audioFormat: "mp3",
-        chunks: totalChunks
+        chunks: totalChunks,
+        voiceCharacterUsage: usage
       });
     } catch (error: any) {
       console.error("[Inworld TTS] Error:", error);
