@@ -9227,7 +9227,7 @@ Only respond with the JSON array, no additional text.`;
         console.error(`[Character Video] Step 1 failed after ${MAX_UPLOAD_RETRIES} attempts. Last error: ${lastUploadError}`);
         // Show user-friendly message for celebrity error
         const errorMessage = lastUploadError === 'CELEBRITY_ERROR' 
-          ? "Celebrity ya famous person ki image use nahi kar sakte. Kripya apni khud ki character image use karein."
+          ? "Cannot use celebrity or famous person images. Please use your own custom character image."
           : `Failed to upload character image after ${MAX_UPLOAD_RETRIES} attempts. Please try again or use a different image.`;
         sendEvent('error', { error: errorMessage });
         res.end();
