@@ -3371,7 +3371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin - Sync voices from ElevenLabs API to database
   app.post("/api/admin/elevenlabs-voices/sync", requireAdmin, async (req, res) => {
     try {
-      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs Shared Library...');
+      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs V2 API...');
       
       // Get API key from settings
       const settings = await storage.getAppSettings();
@@ -3382,15 +3382,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       let allVoices: any[] = [];
-      let page = 0;
+      let nextPageToken: string | null = null;
+      let pageNum = 0;
       const pageSize = 100;
-      let hasMore = true;
       
-      // Fetch all pages from shared voices library
-      while (hasMore) {
-        console.log(`[ElevenLabs Sync] Fetching page ${page + 1}...`);
+      // Fetch all pages using V2 API with community voices
+      while (true) {
+        pageNum++;
+        console.log(`[ElevenLabs Sync] Fetching page ${pageNum}...`);
         
-        const response = await fetch(`https://api.elevenlabs.io/v1/voice-library/shared-voices?page_size=${pageSize}&page=${page}`, {
+        let url = `https://api.elevenlabs.io/v2/voices?page_size=${pageSize}&type=community`;
+        if (nextPageToken) {
+          url += `&next_page_token=${encodeURIComponent(nextPageToken)}`;
+        }
+        
+        const response = await fetch(url, {
           headers: {
             'xi-api-key': apiKey,
           },
@@ -3405,38 +3411,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const json = await response.json();
         
         if (!json.voices || json.voices.length === 0) {
-          hasMore = false;
-        } else {
-          allVoices = allVoices.concat(json.voices);
-          console.log(`[ElevenLabs Sync] Page ${page + 1}: ${json.voices.length} voices (total: ${allVoices.length})`);
-          
-          // Check if there are more pages
-          if (json.voices.length < pageSize || !json.has_more) {
-            hasMore = false;
-          } else {
-            page++;
-          }
+          break;
         }
         
+        allVoices = allVoices.concat(json.voices);
+        console.log(`[ElevenLabs Sync] Page ${pageNum}: ${json.voices.length} voices (total: ${allVoices.length})`);
+        
+        // Check if there are more pages
+        if (!json.has_more || !json.next_page_token) {
+          break;
+        }
+        
+        nextPageToken = json.next_page_token;
+        
         // Add a small delay to avoid rate limiting
-        if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Safety limit
+        if (pageNum > 100) {
+          console.log('[ElevenLabs Sync] Reached page limit');
+          break;
         }
       }
       
-      console.log(`[ElevenLabs Sync] Fetched total ${allVoices.length} voices from Shared Library`);
+      console.log(`[ElevenLabs Sync] Fetched total ${allVoices.length} voices from ElevenLabs V2 API`);
+      
+      if (allVoices.length === 0) {
+        return res.status(400).json({ success: false, error: 'No voices found. Check your API key.' });
+      }
       
       // Transform and sync to database
       const voicesToSync = allVoices.map((v: any) => ({
-        voiceId: v.voice_id || v.public_owner_id,
+        voiceId: v.voice_id,
         name: v.name,
         description: v.description || null,
         previewUrl: v.preview_url || null,
-        gender: v.gender || null,
-        accent: v.accent || null,
-        age: v.age || null,
-        language: v.language || null,
-        useCase: v.use_case || null,
       }));
       
       const result = await storage.syncElevenlabsVoices(voicesToSync);
@@ -3445,7 +3454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
-        message: `Synced ${allVoices.length} voices from ElevenLabs Shared Library`,
+        message: `Synced ${allVoices.length} voices from ElevenLabs`,
         added: result.added,
         updated: result.updated,
       });
