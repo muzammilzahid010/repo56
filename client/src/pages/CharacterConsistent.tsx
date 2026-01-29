@@ -322,6 +322,17 @@ export default function CharacterConsistent() {
     // Clear previous results if checkbox is enabled, otherwise append
     if (clearPrevious) {
       setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
+      
+      // Also delete all videos from database
+      try {
+        await fetch("/api/video-history", {
+          method: "DELETE",
+          credentials: "include",
+        });
+        console.log("[CharacterConsistent] Cleared all previous videos from database");
+      } catch (err) {
+        console.error("[CharacterConsistent] Failed to clear database:", err);
+      }
     } else {
       setResults(prev => [...promptList.map(prompt => ({ prompt, status: 'pending' as const })), ...prev]);
     }

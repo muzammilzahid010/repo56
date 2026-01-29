@@ -1264,6 +1264,11 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  async deleteAllVideoHistoryByUserId(userId: string): Promise<number> {
+    const result = await db.delete(videoHistory).where(eq(videoHistory.userId, userId)).returning();
+    return result.length;
+  }
+
   // Auto-retry settings methods
   async getAutoRetrySettings(): Promise<AutoRetrySettings | undefined> {
     const [settings] = await db.select().from(autoRetrySettings).limit(1);
