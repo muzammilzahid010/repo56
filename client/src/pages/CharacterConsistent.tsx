@@ -883,6 +883,24 @@ export default function CharacterConsistent() {
                               <AlertCircle className="w-5 h-5 text-red-500" />
                             </Box>
                             <Typography sx={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>Failed</Typography>
+                            {result.error && (
+                              <Typography sx={{ 
+                                color: '#dc2626', 
+                                fontSize: '0.65rem', 
+                                fontWeight: 500, 
+                                mt: 0.5, 
+                                textAlign: 'center',
+                                px: 1,
+                                maxWidth: '90%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                              }}>
+                                {result.error}
+                              </Typography>
+                            )}
                           </>
                         ) : result.status === 'pending' ? (
                           <>
