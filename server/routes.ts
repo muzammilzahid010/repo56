@@ -88,6 +88,49 @@ setInterval(() => {
   }
 }, 60000); // Every minute
 
+// Cleanup expired cloned voices - delete from Cartesia API after 1 hour
+const cleanupExpiredClonedVoices = async () => {
+  try {
+    const { clonedVoicesTracker } = await import("@shared/schema");
+    const { db } = await import("./db");
+    const { lt, sql } = await import("drizzle-orm");
+    
+    // Get all expired voices
+    const now = new Date().toISOString();
+    const expiredVoices = await db.select().from(clonedVoicesTracker)
+      .where(lt(clonedVoicesTracker.expiresAt, now));
+    
+    if (expiredVoices.length === 0) return;
+    
+    console.log(`[Voice Cleanup] Found ${expiredVoices.length} expired voices to delete`);
+    
+    const cartesia = await import("./cartesia");
+    
+    for (const voice of expiredVoices) {
+      try {
+        const result = await cartesia.deleteVoice(voice.voiceId);
+        if (result.success) {
+          console.log(`[Voice Cleanup] Deleted voice: ${voice.voiceName} (${voice.voiceId})`);
+        } else {
+          console.log(`[Voice Cleanup] Failed to delete voice ${voice.voiceId}: ${result.error}`);
+        }
+        // Remove from tracker regardless of API result
+        await db.delete(clonedVoicesTracker)
+          .where(sql`${clonedVoicesTracker.voiceId} = ${voice.voiceId}`);
+      } catch (err) {
+        console.error(`[Voice Cleanup] Error deleting voice ${voice.voiceId}:`, err);
+      }
+    }
+  } catch (error) {
+    console.error("[Voice Cleanup] Error in cleanup job:", error);
+  }
+};
+
+// Run voice cleanup every 10 minutes
+setInterval(cleanupExpiredClonedVoices, 10 * 60 * 1000);
+// Also run once at startup after 1 minute
+setTimeout(cleanupExpiredClonedVoices, 60 * 1000);
+
 // Cloudinary is now only used for merge operations (not video generation)
 
 // ==================== SECURITY MIDDLEWARE ====================
@@ -4997,12 +5040,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ error: result.error || "Failed to clone voice" });
           }
           
-          console.log(`[Voice Clone V2] Voice cloned successfully: ${result.voice?.id} - ${name}`);
+          const voiceId = result.voice?.id;
+          console.log(`[Voice Clone V2] Voice cloned successfully: ${voiceId} - ${name}`);
+          
+          // Track voice for auto-deletion after 1 hour
+          if (voiceId) {
+            try {
+              const { clonedVoicesTracker } = await import("@shared/schema");
+              const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour from now
+              await db.insert(clonedVoicesTracker).values({
+                voiceId,
+                voiceName: name,
+                userId: (req as any).user?.id || null,
+                expiresAt,
+              }).onConflictDoNothing();
+              console.log(`[Voice Clone V2] Voice scheduled for deletion at: ${expiresAt}`);
+            } catch (trackErr) {
+              console.log(`[Voice Clone V2] Could not track voice:`, trackErr);
+            }
+          }
           
           res.json({
             success: true,
             voice: {
-              id: result.voice?.id,
+              id: voiceId,
               name: result.voice?.name,
               description: result.voice?.description,
               language: result.voice?.language,
@@ -5147,14 +5208,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trimmedText = text.trim();
       const charCount = trimmedText.length;
       
-      // Get available token from database (least used, active, under limit)
-      const { inworldTokens } = await import("@shared/schema");
+      // Get available tokens from database
+      const { inworldTokens, voiceTokenMapping } = await import("@shared/schema");
       const tokens = await db.select().from(inworldTokens)
         .where(eq(inworldTokens.isActive, true))
         .orderBy(inworldTokens.charactersUsed);
       
-      // Find a token that has capacity
-      let selectedToken = tokens.find(t => (t.charactersUsed + charCount) <= t.charactersLimit);
+      let selectedToken = null;
+      let usedMappedToken = false;
+      
+      // First check if this voice has a mapped token
+      if (voice) {
+        const [mapping] = await db.select().from(voiceTokenMapping)
+          .where(eq(voiceTokenMapping.voiceId, voice));
+        
+        if (mapping) {
+          // Use the mapped token if it exists and has capacity
+          const mappedToken = tokens.find(t => t.id === mapping.tokenId);
+          if (mappedToken && (mappedToken.charactersUsed + charCount) <= mappedToken.charactersLimit) {
+            selectedToken = mappedToken;
+            usedMappedToken = true;
+            console.log(`[Inworld TTS] Using mapped token: ${mappedToken.label} for voice: ${voice}`);
+          }
+        }
+      }
+      
+      // If no mapped token or it's full, find least-used token with capacity
+      if (!selectedToken) {
+        selectedToken = tokens.find(t => (t.charactersUsed + charCount) <= t.charactersLimit);
+        
+        // Save mapping for this voice if we found a token
+        if (selectedToken && voice) {
+          try {
+            await db.insert(voiceTokenMapping).values({
+              voiceId: voice,
+              tokenId: selectedToken.id,
+            }).onConflictDoUpdate({
+              target: voiceTokenMapping.voiceId,
+              set: { tokenId: selectedToken.id },
+            });
+            console.log(`[Inworld TTS] Saved token mapping: voice ${voice} -> token ${selectedToken.label}`);
+          } catch (mapErr) {
+            console.log(`[Inworld TTS] Token mapping already exists or error:`, mapErr);
+          }
+        }
+      }
       
       // Fallback to env variable if no database tokens
       let apiKey = selectedToken?.apiKey || process.env.INWORLD_API_KEY;

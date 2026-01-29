@@ -569,6 +569,30 @@ export const inworldTokens = pgTable("inworld_tokens", {
   createdAt: text("created_at").notNull().default(sql`now()::text`),
 });
 
+// Voice-Token mapping - tracks which voice uses which Inworld token
+export const voiceTokenMapping = pgTable("voice_token_mapping", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voiceId: text("voice_id").notNull().unique(), // The voice ID (e.g., ElevenLabs voice_id)
+  tokenId: varchar("token_id").notNull(), // Inworld token ID
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+});
+
+export type VoiceTokenMapping = typeof voiceTokenMapping.$inferSelect;
+export type InsertVoiceTokenMapping = typeof voiceTokenMapping.$inferInsert;
+
+// Cloned voices tracker - for auto-deletion after 1 hour
+export const clonedVoicesTracker = pgTable("cloned_voices_tracker", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voiceId: text("voice_id").notNull().unique(), // Cartesia voice ID
+  voiceName: text("voice_name").notNull(),
+  userId: varchar("user_id"), // User who created the voice
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+  expiresAt: text("expires_at").notNull(), // When to auto-delete (1 hour after creation)
+});
+
+export type ClonedVoicesTracker = typeof clonedVoicesTracker.$inferSelect;
+export type InsertClonedVoicesTracker = typeof clonedVoicesTracker.$inferInsert;
+
 export const insertInworldTokenSchema = createInsertSchema(inworldTokens).pick({
   apiKey: true,
   label: true,
