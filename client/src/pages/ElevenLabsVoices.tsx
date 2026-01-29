@@ -249,8 +249,8 @@ export default function ElevenLabsVoices() {
       });
 
       toast({
-        title: "Cloning voice...",
-        description: `Creating voice clone "${voice.name}"`,
+        title: "Preparing voice...",
+        description: `Setting up voice "${voice.name}"`,
       });
 
       // Step 2: Clone the voice using Inworld API
@@ -269,7 +269,7 @@ export default function ElevenLabsVoices() {
       }
 
       toast({
-        title: "Voice cloned successfully!",
+        title: "Voice ready!",
         description: `"${voice.name}" is ready to use`,
       });
 
@@ -299,8 +299,8 @@ export default function ElevenLabsVoices() {
     } catch (error: any) {
       console.error("Use This Voice error:", error);
       toast({
-        title: "Failed to clone voice",
-        description: error.message || "An error occurred while cloning the voice",
+        title: "Failed to prepare voice",
+        description: error.message || "An error occurred while preparing the voice",
         variant: "destructive",
       });
     } finally {
@@ -491,7 +491,7 @@ export default function ElevenLabsVoices() {
                         {cloningVoiceId === voice.voice_id ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Cloning...
+                            Preparing...
                           </>
                         ) : (
                           <>
