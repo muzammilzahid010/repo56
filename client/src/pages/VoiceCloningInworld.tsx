@@ -47,16 +47,6 @@ interface ElevenLabsVoice {
   preview_url: string;
 }
 
-// Official 21 ElevenLabs voice names (to separate from library voices)
-const OFFICIAL_ELEVENLABS_VOICES = [
-  "Rachel", "Drew", "Clyde", "Paul", "Domi", "Dave", "Fin", "Bella", 
-  "Antoni", "Thomas", "Charlie", "Emily", "Elli", "Callum", "Patrick", 
-  "Harry", "Liam", "Dorothy", "Josh", "Arnold", "Charlotte", "Matilda",
-  "Matthew", "James", "Joseph", "Jeremy", "Michael", "Ethan", "Chris",
-  "Gigi", "Freya", "Grace", "Daniel", "Lily", "Serena", "Adam", "Nicole",
-  "Bill", "Jessie", "Santa Claus", "George", "Sam"
-];
-
 interface GenerateResponse {
   success: boolean;
   audioUrl?: string;
@@ -164,15 +154,8 @@ export default function VoiceCloningInworld() {
     },
   });
 
-  const elevenlabsVoices = elevenlabsData?.voices || [];
-  
-  // Separate official voices from library voices
-  const officialVoices = elevenlabsVoices.filter(v => 
-    OFFICIAL_ELEVENLABS_VOICES.some(name => v.name.toLowerCase() === name.toLowerCase())
-  );
-  const libraryVoices = elevenlabsVoices.filter(v => 
-    !OFFICIAL_ELEVENLABS_VOICES.some(name => v.name.toLowerCase() === name.toLowerCase())
-  );
+  // Official voices directly from ElevenLabs API
+  const officialVoices = elevenlabsData?.voices || [];
   
   // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
@@ -194,10 +177,10 @@ export default function VoiceCloningInworld() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       let voiceToUse = voice;
-      let originalElVoice: typeof elevenlabsVoices[0] | null = null;
+      let originalElVoice: typeof officialVoices[0] | null = null;
       
       // Helper function to clone voice
-      const cloneVoice = async (elVoice: typeof elevenlabsVoices[0]) => {
+      const cloneVoice = async (elVoice: typeof officialVoices[0]) => {
         toast({
           title: "Preparing Voice",
           description: `Loading ${elVoice.name} - Please wait...`,
@@ -232,7 +215,7 @@ export default function VoiceCloningInworld() {
       // If ElevenLabs voice selected, clone it first using preview audio
       if (voice.startsWith("elevenlabs:")) {
         const elVoiceId = voice.replace("elevenlabs:", "");
-        const elVoice = elevenlabsVoices.find(v => v.voice_id === elVoiceId);
+        const elVoice = officialVoices.find(v => v.voice_id === elVoiceId);
         
         if (elVoice && elVoice.preview_url) {
           originalElVoice = elVoice;
@@ -248,7 +231,7 @@ export default function VoiceCloningInworld() {
         // Check if it's a cloned voice - find original ElevenLabs voice for re-clone if needed
         const clonedVoice = clonedVoices.find(cv => cv.voiceId === voice);
         if (clonedVoice) {
-          const elVoice = elevenlabsVoices.find(v => v.name === clonedVoice.displayName);
+          const elVoice = officialVoices.find(v => v.name === clonedVoice.displayName);
           if (elVoice) {
             originalElVoice = elVoice;
           }
@@ -280,7 +263,7 @@ export default function VoiceCloningInworld() {
           
           if (voiceName) {
             // Search in ElevenLabs library for matching voice
-            voiceToClone = elevenlabsVoices.find(v => 
+            voiceToClone = officialVoices.find(v => 
               v.name.toLowerCase() === voiceName.toLowerCase() ||
               v.name.toLowerCase().includes(voiceName.toLowerCase())
             ) || null;

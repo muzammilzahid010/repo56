@@ -3524,37 +3524,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get ElevenLabs voices with preview URLs (for Voice AI auto-clone feature)
+  // Get ElevenLabs OFFICIAL voices directly from ElevenLabs API (21 voices)
   app.get("/api/elevenlabs-voices/official", requireAuth, async (req, res) => {
     try {
-      // First try to get from local database
-      const voices = await storage.getAllElevenlabsVoices();
-      
-      if (voices && voices.length > 0) {
-        // Return voices with preview URLs
-        const voicesWithPreviews = voices
-          .filter(v => v.previewUrl)
-          .map(v => ({
-            voice_id: v.voiceId,
-            name: v.name,
-            preview_url: v.previewUrl,
-          }));
-        return res.json({ success: true, voices: voicesWithPreviews });
-      }
-      
-      // If no voices in database, try to fetch from ElevenLabs API
+      // Fetch directly from ElevenLabs Official API
       const settings = await storage.getAppSettings();
       const apiKey = settings?.elevenlabsApiKey;
       
       if (!apiKey) {
+        console.log('[ElevenLabs Official] No API key configured');
         return res.json({ success: true, voices: [] });
       }
       
+      console.log('[ElevenLabs Official] Fetching from ElevenLabs API...');
       const response = await fetch('https://api.elevenlabs.io/v1/voices', {
         headers: { 'xi-api-key': apiKey },
       });
       
       if (!response.ok) {
+        console.log('[ElevenLabs Official] API error:', response.status);
         return res.json({ success: true, voices: [] });
       }
       
@@ -3567,6 +3555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           preview_url: v.preview_url,
         })) || [];
       
+      console.log(`[ElevenLabs Official] Found ${officialVoices.length} voices from API`);
       res.json({ success: true, voices: officialVoices });
     } catch (error) {
       console.error('[ElevenLabs Official] Error:', error);
