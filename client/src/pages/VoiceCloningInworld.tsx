@@ -190,8 +190,8 @@ export default function VoiceCloningInworld() {
           } else {
             // Clone the voice first
             toast({
-              title: "Cloning Voice",
-              description: `Setting up ${elVoice.name} voice...`,
+              title: "Preparing Voice",
+              description: `Loading ${elVoice.name} - Please wait...`,
             });
             
             const cloneResponse = await apiRequest("POST", "/api/voice-ai/clone-from-url", {
@@ -585,7 +585,7 @@ export default function VoiceCloningInworld() {
                   {cloneMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Cloning Voice...
+                      Preparing...
                     </>
                   ) : (
                     <>
