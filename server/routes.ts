@@ -2407,15 +2407,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reset all users' daily video counts (admin only)
+  // Reset all users' daily video counts (admin only) - FORCE reset regardless of date
   app.post("/api/admin/reset-all-daily-counts", requireAdmin, async (req, res) => {
     try {
-      console.log("[Admin] Manually triggering daily video count reset for all users");
-      await storage.checkAndResetDailyCounts();
+      console.log("[Admin] Force resetting daily video count for ALL users");
+      const resetCount = await storage.forceResetAllDailyCounts();
       
       res.json({ 
         success: true,
-        message: "All users' daily video counts have been reset"
+        message: `Force reset daily video counts for ${resetCount} users`,
+        resetCount
       });
     } catch (error) {
       console.error("Error in POST /api/admin/reset-all-daily-counts:", error);

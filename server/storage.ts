@@ -94,6 +94,7 @@ export interface IStorage {
   incrementDailyVideoCount(userId: string): Promise<void>;
   resetDailyVideoCount(userId: string): Promise<void>;
   checkAndResetDailyCounts(): Promise<void>;
+  forceResetAllDailyCounts(): Promise<number>;
   // Voice character tracking
   incrementVoiceCharacters(userId: string, charCount: number): Promise<void>;
   resetVoiceCharacters(userId: string, resetDate: string): Promise<void>;
@@ -663,6 +664,25 @@ export class DatabaseStorage implements IStorage {
       .returning({ id: users.id, username: users.username });
     
     console.log(`[Daily Reset] Reset daily video count for ${result.length} users`);
+  }
+
+  async forceResetAllDailyCounts(): Promise<number> {
+    // Force reset ALL users' daily video counts regardless of date
+    const nowPk = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Karachi' });
+    const todayPk = nowPk.split(',')[0];
+    
+    console.log(`[Force Reset] Forcing daily count reset for ALL users`);
+    
+    const result = await db
+      .update(users)
+      .set({
+        dailyVideoCount: 0,
+        dailyResetDate: todayPk,
+      })
+      .returning({ id: users.id });
+    
+    console.log(`[Force Reset] Force reset daily video count for ${result.length} users`);
+    return result.length;
   }
 
   // Voice character tracking methods
