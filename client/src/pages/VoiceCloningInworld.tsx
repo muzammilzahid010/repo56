@@ -329,19 +329,45 @@ export default function VoiceCloningInworld() {
           description: "Your audio is ready to play!",
         });
       } else {
-        toast({
-          title: "Generation Failed",
-          description: data.error || "Failed to generate audio",
-          variant: "destructive",
-        });
+        // Check if error is about voice expiry
+        const errorMsg = data.error || "";
+        if (errorMsg.includes("expired") || errorMsg.includes("Not Found") || errorMsg.includes("404")) {
+          toast({
+            title: "Voice Expired",
+            description: "Your voice has expired. Please clone again or select a new voice from ElevenLabs library.",
+            variant: "destructive",
+          });
+          // Clear invalid cloned voices
+          setClonedVoices([]);
+          localStorage.removeItem("clonedVoices");
+        } else {
+          toast({
+            title: "Generation Failed",
+            description: data.error || "Failed to generate audio",
+            variant: "destructive",
+          });
+        }
       }
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate audio",
-        variant: "destructive",
-      });
+      // Check for 404 or "Not Found" errors - voice expired
+      const errorMsg = error.message || String(error) || "";
+      if (errorMsg.includes("404") || errorMsg.includes("Not Found") || errorMsg.includes("not found")) {
+        toast({
+          title: "Voice Expired",
+          description: "Your voice has expired. Please clone again or select a new voice from ElevenLabs library.",
+          variant: "destructive",
+        });
+        // Clear invalid cloned voices
+        setClonedVoices([]);
+        localStorage.removeItem("clonedVoices");
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to generate audio",
+          variant: "destructive",
+        });
+      }
     },
   });
 
