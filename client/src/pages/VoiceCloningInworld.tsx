@@ -176,6 +176,40 @@ export default function VoiceCloningInworld() {
   const generateMutation = useMutation({
     mutationFn: async () => {
       let voiceToUse = voice;
+      let originalElVoice: typeof elevenlabsVoices[0] | null = null;
+      
+      // Helper function to clone voice
+      const cloneVoice = async (elVoice: typeof elevenlabsVoices[0]) => {
+        toast({
+          title: "Preparing Voice",
+          description: `Loading ${elVoice.name} - Please wait...`,
+        });
+        
+        const cloneResponse = await apiRequest("POST", "/api/voice-ai/clone-from-url", {
+          name: elVoice.name,
+          audioUrl: elVoice.preview_url,
+          langCode: "EN_US",
+          description: `ElevenLabs ${elVoice.name} voice`,
+        });
+        const cloneData = await cloneResponse.json() as CloneResponse;
+        
+        if (cloneData.success && (cloneData.voice?.voiceId || cloneData.voiceId)) {
+          const clonedVoiceId = cloneData.voice?.voiceId || cloneData.voiceId!;
+          // Remove old clone if exists, then add new one
+          const filteredClones = clonedVoices.filter(cv => cv.displayName !== elVoice.name);
+          const newClonedVoice: ClonedVoice = {
+            voiceId: clonedVoiceId,
+            displayName: elVoice.name,
+            createdAt: new Date().toISOString(),
+          };
+          const updatedClones = [...filteredClones, newClonedVoice];
+          setClonedVoices(updatedClones);
+          localStorage.setItem("clonedVoices", JSON.stringify(updatedClones));
+          return clonedVoiceId;
+        } else {
+          throw new Error(cloneData.error || "Failed to clone voice");
+        }
+      };
       
       // If ElevenLabs voice selected, clone it first using preview audio
       if (voice.startsWith("elevenlabs:")) {
@@ -183,43 +217,27 @@ export default function VoiceCloningInworld() {
         const elVoice = elevenlabsVoices.find(v => v.voice_id === elVoiceId);
         
         if (elVoice && elVoice.preview_url) {
+          originalElVoice = elVoice;
           // Check if already cloned
           const existingClone = clonedVoices.find(cv => cv.displayName === elVoice.name);
           if (existingClone) {
             voiceToUse = existingClone.voiceId;
           } else {
-            // Clone the voice first
-            toast({
-              title: "Preparing Voice",
-              description: `Loading ${elVoice.name} - Please wait...`,
-            });
-            
-            const cloneResponse = await apiRequest("POST", "/api/voice-ai/clone-from-url", {
-              name: elVoice.name,
-              audioUrl: elVoice.preview_url,
-              langCode: "EN_US",
-              description: `ElevenLabs ${elVoice.name} voice`,
-            });
-            const cloneData = await cloneResponse.json() as CloneResponse;
-            
-            if (cloneData.success && (cloneData.voice?.voiceId || cloneData.voiceId)) {
-              const clonedVoiceId = cloneData.voice?.voiceId || cloneData.voiceId!;
-              const newClonedVoice: ClonedVoice = {
-                voiceId: clonedVoiceId,
-                displayName: elVoice.name,
-                createdAt: new Date().toISOString(),
-              };
-              const updatedClones = [...clonedVoices, newClonedVoice];
-              setClonedVoices(updatedClones);
-              localStorage.setItem("clonedVoices", JSON.stringify(updatedClones));
-              voiceToUse = clonedVoiceId;
-            } else {
-              throw new Error(cloneData.error || "Failed to clone voice");
-            }
+            voiceToUse = await cloneVoice(elVoice);
+          }
+        }
+      } else {
+        // Check if it's a cloned voice - find original ElevenLabs voice for re-clone if needed
+        const clonedVoice = clonedVoices.find(cv => cv.voiceId === voice);
+        if (clonedVoice) {
+          const elVoice = elevenlabsVoices.find(v => v.name === clonedVoice.displayName);
+          if (elVoice) {
+            originalElVoice = elVoice;
           }
         }
       }
       
+      // Try to generate audio
       const response = await apiRequest("POST", "/api/voice-ai/generate", {
         text,
         voice: voiceToUse,
@@ -227,7 +245,26 @@ export default function VoiceCloningInworld() {
         speed: speed[0],
         temperature: temperature[0],
       });
-      return response.json() as Promise<GenerateResponse>;
+      
+      const data = await response.json() as GenerateResponse;
+      
+      // If 404 error (voice not found) and we have original ElevenLabs voice, re-clone and retry
+      if (data.error && data.error.includes("Not Found") && originalElVoice) {
+        console.log("[Voice AI] Voice not found, re-cloning:", originalElVoice.name);
+        const newVoiceId = await cloneVoice(originalElVoice);
+        
+        // Retry generation with new voice
+        const retryResponse = await apiRequest("POST", "/api/voice-ai/generate", {
+          text,
+          voice: newVoiceId,
+          language,
+          speed: speed[0],
+          temperature: temperature[0],
+        });
+        return retryResponse.json() as Promise<GenerateResponse>;
+      }
+      
+      return data;
     },
     onSuccess: (data) => {
       if (data.success && (data.audioUrl || data.audioBase64)) {
