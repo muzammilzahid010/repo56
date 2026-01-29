@@ -9269,7 +9269,7 @@ Only respond with the JSON array, no additional text.`;
         // Each video gets its OWN token and uploads character image to that token
         // This avoids rate limiting while keeping mediaIds accessible
         const videoToken = activeTokens[index % activeTokens.length];
-        console.log(`[Character Video ${index}] Using token: ${videoToken.name || videoToken.id.substring(0, 8)} for all steps`);
+        console.log(`[Character Video ${index}] Using token: ${videoToken.label || videoToken.id.substring(0, 8)} for all steps`);
         
         // STEP 1B: Upload character image to THIS token (each token needs its own characterMediaId)
         console.log(`[Character Video ${index}] Uploading character to token...`);
@@ -9321,8 +9321,59 @@ Only respond with the JSON array, no additional text.`;
           return;
         }
         
-        console.log(`[Character Video ${index}] Processing prompt: ${prompt.substring(0, 50)}...`);
-        sendEvent('progress', { index, phase: 'generating_image', message: 'Generating image with character...' });
+        // Auto retry loop - 10 attempts max
+        const MAX_VIDEO_RETRIES = 10;
+        let retryAttempt = 0;
+        let videoSucceeded = false;
+        
+        while (retryAttempt < MAX_VIDEO_RETRIES && !videoSucceeded && !isCancelled) {
+          retryAttempt++;
+          
+          // Use different token for each retry attempt
+          const currentToken = activeTokens[(index + retryAttempt - 1) % activeTokens.length];
+          
+          if (retryAttempt > 1) {
+            console.log(`[Character Video ${index}] Retry ${retryAttempt}/${MAX_VIDEO_RETRIES} with token ${currentToken.label || currentToken.id.substring(0, 8)}`);
+            sendEvent('progress', { index, phase: 'retrying', message: `Retrying (${retryAttempt}/${MAX_VIDEO_RETRIES})...` });
+            // Wait 2 seconds before retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Re-upload character to new token
+            try {
+              const reUploadResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${currentToken.token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  imageInput: {
+                    rawImageBytes: characterImageBase64,
+                    mimeType: characterImageMimeType,
+                    isUserUploaded: true,
+                    aspectRatio: aspectRatio
+                  },
+                  clientContext: {
+                    sessionId: sessionId,
+                    tool: "ASSET_MANAGER"
+                  }
+                }),
+              });
+              
+              if (reUploadResponse.ok) {
+                const reUploadData = await reUploadResponse.json();
+                videoCharacterMediaId = reUploadData.mediaGenerationId?.mediaGenerationId || reUploadData.mediaGenerationId;
+                console.log(`[Character Video ${index}] Retry: Character re-uploaded to new token`);
+              }
+            } catch (reUploadErr) {
+              console.log(`[Character Video ${index}] Retry: Character re-upload failed, using existing`);
+            }
+          }
+          
+          const videoToken = retryAttempt === 1 ? activeTokens[index % activeTokens.length] : currentToken;
+        
+        console.log(`[Character Video ${index}] Processing prompt: ${prompt.substring(0, 50)}... (attempt ${retryAttempt})`);
+        sendEvent('progress', { index, phase: 'generating_image', message: `Generating image... (attempt ${retryAttempt})` });
 
         try {
           // STEP 2: Generate image with character reference using whisk:runImageRecipe directly
@@ -9360,10 +9411,13 @@ Only respond with the JSON array, no additional text.`;
 
           if (!recipeResponse.ok) {
             const errorText = await recipeResponse.text();
-            console.error(`[Character Video ${index}] Step 2 failed:`, errorText);
-            sendEvent('result', { index, status: 'failed', error: `Image generation failed: ${recipeResponse.status}`, phase: 'image' });
-            failedCount++;
-            return;
+            console.error(`[Character Video ${index}] Step 2 failed (attempt ${retryAttempt}):`, errorText);
+            if (retryAttempt >= MAX_VIDEO_RETRIES) {
+              sendEvent('result', { index, status: 'failed', error: `Image generation failed after ${MAX_VIDEO_RETRIES} retries`, phase: 'image' });
+              failedCount++;
+              return;
+            }
+            continue; // Retry
           }
 
           const recipeResult = await recipeResponse.json();
@@ -9384,10 +9438,13 @@ Only respond with the JSON array, no additional text.`;
           }
 
           if (!encodedImage) {
-            console.error(`[Character Video ${index}] Step 2: No image in response`);
-            sendEvent('result', { index, status: 'failed', error: 'No image data in response', phase: 'image' });
-            failedCount++;
-            return;
+            console.error(`[Character Video ${index}] Step 2: No image in response (attempt ${retryAttempt})`);
+            if (retryAttempt >= MAX_VIDEO_RETRIES) {
+              sendEvent('result', { index, status: 'failed', error: 'No image data after all retries', phase: 'image' });
+              failedCount++;
+              return;
+            }
+            continue; // Retry
           }
 
           const imageDataUrl = `data:image/png;base64,${encodedImage}`;
@@ -9448,10 +9505,13 @@ Only respond with the JSON array, no additional text.`;
 
           if (!videoResponse.ok) {
             const errorText = await videoResponse.text();
-            console.error(`[Character Video ${index}] Step 4 failed:`, errorText);
-            sendEvent('result', { index, status: 'failed', error: 'Video generation failed to start', imageUrl: imageDataUrl, phase: 'video_start' });
-            failedCount++;
-            return;
+            console.error(`[Character Video ${index}] Step 4 failed (attempt ${retryAttempt}):`, errorText);
+            if (retryAttempt >= MAX_VIDEO_RETRIES) {
+              sendEvent('result', { index, status: 'failed', error: 'Video generation failed to start after all retries', imageUrl: imageDataUrl, phase: 'video_start' });
+              failedCount++;
+              return;
+            }
+            continue; // Retry
           }
 
           const videoData = await videoResponse.json();
@@ -9545,10 +9605,9 @@ Only respond with the JSON array, no additional text.`;
                 }
                 videoCompleted = true;
               } else if (status === "MEDIA_GENERATION_STATUS_FAILED" || status === "FAILED") {
-                console.error(`[Character Video ${index}] Video generation failed`);
-                await storage.updateVideoHistoryStatus(historyEntry.id, String(userId), 'failed');
-                sendEvent('result', { index, status: 'failed', error: 'Video generation failed', imageUrl: imageDataUrl, phase: 'video_failed' });
-                videoCompleted = true;
+                console.error(`[Character Video ${index}] Video generation failed (attempt ${retryAttempt})`);
+                // Don't mark as permanently failed - let retry loop handle it
+                videoCompleted = true; // Exit polling, but retry loop will handle
               } else {
                 console.log(`[Character Video ${index}] Poll ${pollAttempts}: Status = ${status}`);
               }
@@ -9561,18 +9620,36 @@ Only respond with the JSON array, no additional text.`;
             console.log(`[Character Video ${index}] Complete! Video URL: ${videoUrl}`);
             sendEvent('result', { index, status: 'completed', imageUrl: imageDataUrl, videoUrl: videoUrl, historyId: historyEntry.id, phase: 'complete' });
             completedCount++;
+            videoSucceeded = true; // Exit retry loop
+            break; // Success - exit retry loop
           } else if (!videoCompleted) {
-            console.log(`[Character Video ${index}] Timed out waiting for video`);
-            await storage.updateVideoHistoryStatus(historyEntry.id, String(userId), 'failed');
-            sendEvent('result', { index, status: 'failed', error: 'Video generation timed out', imageUrl: imageDataUrl, phase: 'timeout' });
-            failedCount++;
+            console.log(`[Character Video ${index}] Timed out waiting for video (attempt ${retryAttempt})`);
+            // Don't count as failed yet - let retry loop handle
+            if (retryAttempt >= MAX_VIDEO_RETRIES) {
+              await storage.updateVideoHistoryStatus(historyEntry.id, String(userId), 'failed', undefined, 'Video generation timed out');
+              sendEvent('result', { index, status: 'failed', error: `Video generation timed out after ${MAX_VIDEO_RETRIES} retries`, imageUrl: imageDataUrl, phase: 'timeout' });
+              failedCount++;
+            }
+            continue; // Retry
+          } else {
+            // Video failed during polling - retry
+            if (retryAttempt >= MAX_VIDEO_RETRIES) {
+              await storage.updateVideoHistoryStatus(historyEntry.id, String(userId), 'failed', undefined, 'Video generation failed');
+              sendEvent('result', { index, status: 'failed', error: `Video generation failed after ${MAX_VIDEO_RETRIES} retries`, imageUrl: imageDataUrl, phase: 'video_failed' });
+              failedCount++;
+            }
+            continue; // Retry
           }
 
         } catch (error: any) {
-          console.error(`[Character Video ${index}] Error:`, error);
-          sendEvent('result', { index, status: 'failed', error: error.message || 'Unknown error' });
-          failedCount++;
+          console.error(`[Character Video ${index}] Error (attempt ${retryAttempt}):`, error);
+          if (retryAttempt >= MAX_VIDEO_RETRIES) {
+            sendEvent('result', { index, status: 'failed', error: `Error after ${MAX_VIDEO_RETRIES} retries: ${error.message || 'Unknown error'}` });
+            failedCount++;
+          }
+          continue; // Retry
         }
+        } // End of retry while loop
       };
 
       // Start concurrent workers
