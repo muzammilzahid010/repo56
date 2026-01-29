@@ -68,6 +68,9 @@ import {
   elevenlabsVoices,
   type ElevenlabsVoice,
   type InsertElevenlabsVoice,
+  elevenlabsOfficialVoices,
+  type ElevenlabsOfficialVoice,
+  type InsertElevenlabsOfficialVoice,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, notInArray, inArray, isNotNull, ne, gt, lt } from "drizzle-orm";
@@ -2494,6 +2497,28 @@ export class DatabaseStorage implements IStorage {
 
   async clearElevenlabsVoices(): Promise<void> {
     await db.delete(elevenlabsVoices);
+  }
+
+  // ElevenLabs Official Voices (21 voices from API)
+  async getAllOfficialVoices(): Promise<ElevenlabsOfficialVoice[]> {
+    return await db.select().from(elevenlabsOfficialVoices).orderBy(asc(elevenlabsOfficialVoices.name));
+  }
+
+  async getOfficialVoiceCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(elevenlabsOfficialVoices);
+    return result[0]?.count || 0;
+  }
+
+  async syncOfficialVoices(voices: InsertElevenlabsOfficialVoice[]): Promise<number> {
+    // Clear existing and insert fresh
+    await db.delete(elevenlabsOfficialVoices);
+    if (voices.length === 0) return 0;
+    await db.insert(elevenlabsOfficialVoices).values(voices);
+    return voices.length;
+  }
+
+  async clearOfficialVoices(): Promise<void> {
+    await db.delete(elevenlabsOfficialVoices);
   }
 }
 

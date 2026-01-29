@@ -3524,10 +3524,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get ElevenLabs OFFICIAL voices directly from ElevenLabs API (21 voices)
+  // Get ElevenLabs OFFICIAL voices (from database, or fetch once from API if empty)
   app.get("/api/elevenlabs-voices/official", requireAuth, async (req, res) => {
     try {
-      // Fetch directly from ElevenLabs Official API
+      // First try to get from database
+      const dbVoices = await storage.getAllOfficialVoices();
+      
+      if (dbVoices.length > 0) {
+        console.log(`[ElevenLabs Official] Returning ${dbVoices.length} voices from database`);
+        return res.json({ 
+          success: true, 
+          voices: dbVoices.map(v => ({
+            voice_id: v.voiceId,
+            name: v.name,
+            preview_url: v.previewUrl,
+          }))
+        });
+      }
+      
+      // Database empty - fetch from ElevenLabs API and save
       const settings = await storage.getAppSettings();
       const apiKey = settings?.elevenlabsApiKey;
       
@@ -3536,7 +3551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true, voices: [] });
       }
       
-      console.log('[ElevenLabs Official] Fetching from ElevenLabs API...');
+      console.log('[ElevenLabs Official] Database empty - fetching from ElevenLabs API...');
       const response = await fetch('https://api.elevenlabs.io/v1/voices', {
         headers: { 'xi-api-key': apiKey },
       });
@@ -3550,16 +3565,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const officialVoices = json.voices
         ?.filter((v: any) => v.preview_url)
         .map((v: any) => ({
-          voice_id: v.voice_id,
+          voiceId: v.voice_id,
           name: v.name,
-          preview_url: v.preview_url,
+          previewUrl: v.preview_url,
         })) || [];
       
-      console.log(`[ElevenLabs Official] Found ${officialVoices.length} voices from API`);
-      res.json({ success: true, voices: officialVoices });
+      // Save to database for next time
+      if (officialVoices.length > 0) {
+        await storage.syncOfficialVoices(officialVoices);
+        console.log(`[ElevenLabs Official] Saved ${officialVoices.length} voices to database`);
+      }
+      
+      res.json({ 
+        success: true, 
+        voices: officialVoices.map((v: any) => ({
+          voice_id: v.voiceId,
+          name: v.name,
+          preview_url: v.previewUrl,
+        }))
+      });
     } catch (error) {
       console.error('[ElevenLabs Official] Error:', error);
       res.json({ success: true, voices: [] });
+    }
+  });
+
+  // Admin - Sync official voices from ElevenLabs API
+  app.post("/api/admin/elevenlabs-official-voices/sync", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      const apiKey = settings?.elevenlabsApiKey;
+      
+      if (!apiKey) {
+        return res.status(400).json({ success: false, error: 'No ElevenLabs API key configured' });
+      }
+      
+      console.log('[ElevenLabs Official Sync] Fetching from API...');
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': apiKey },
+      });
+      
+      if (!response.ok) {
+        return res.status(500).json({ success: false, error: `API error: ${response.status}` });
+      }
+      
+      const json = await response.json();
+      const officialVoices = json.voices
+        ?.filter((v: any) => v.preview_url)
+        .map((v: any) => ({
+          voiceId: v.voice_id,
+          name: v.name,
+          previewUrl: v.preview_url,
+        })) || [];
+      
+      const count = await storage.syncOfficialVoices(officialVoices);
+      console.log(`[ElevenLabs Official Sync] Saved ${count} voices`);
+      
+      res.json({ success: true, count, message: `Synced ${count} official voices` });
+    } catch (error: any) {
+      console.error('[ElevenLabs Official Sync] Error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Admin - Get official voice count
+  app.get("/api/admin/elevenlabs-official-voices/stats", requireAdmin, async (req, res) => {
+    try {
+      const count = await storage.getOfficialVoiceCount();
+      res.json({ success: true, count });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to get stats' });
     }
   });
 

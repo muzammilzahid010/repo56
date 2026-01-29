@@ -940,3 +940,20 @@ export const insertElevenlabsVoiceSchema = createInsertSchema(elevenlabsVoices).
 
 export type ElevenlabsVoice = typeof elevenlabsVoices.$inferSelect;
 export type InsertElevenlabsVoice = z.infer<typeof insertElevenlabsVoiceSchema>;
+
+// ElevenLabs OFFICIAL Voices (21 voices from ElevenLabs API) - separate from library
+export const elevenlabsOfficialVoices = pgTable("elevenlabs_official_voices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voiceId: text("voice_id").notNull().unique(),
+  name: text("name").notNull(),
+  previewUrl: text("preview_url"),
+  createdAt: text("created_at").notNull().default(sql`now()::text`),
+});
+
+export const insertElevenlabsOfficialVoiceSchema = createInsertSchema(elevenlabsOfficialVoices).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ElevenlabsOfficialVoice = typeof elevenlabsOfficialVoices.$inferSelect;
+export type InsertElevenlabsOfficialVoice = z.infer<typeof insertElevenlabsOfficialVoiceSchema>;
