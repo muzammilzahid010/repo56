@@ -291,7 +291,7 @@ export default function VoiceCloningInworld() {
           
           return {
             success: false,
-            error: "Voice not available. Please select a different voice from ElevenLabs section."
+            error: "Your voice has expired. Please select a new voice from ElevenLabs section and clone it again."
           } as GenerateResponse;
         }
       }
