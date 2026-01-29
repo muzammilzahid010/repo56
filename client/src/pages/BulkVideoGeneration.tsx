@@ -362,13 +362,19 @@ export default function BulkVideoGeneration() {
     if (clearPrevious) {
       setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
       
-      // Also delete all videos from database
+      // Also delete all videos from database - wait for completion
       try {
-        await fetch("/api/video-history", {
+        const deleteResponse = await fetch("/api/video-history", {
           method: "DELETE",
           credentials: "include",
+          headers: { "Content-Type": "application/json" },
         });
-        console.log("[BulkVideoGeneration] Cleared all previous videos from database");
+        const deleteResult = await deleteResponse.json();
+        console.log("[BulkVideoGeneration] Cleared all previous videos from database:", deleteResult);
+        toast({ 
+          title: "Previous videos cleared", 
+          description: `Deleted ${deleteResult.deletedRecords || 0} videos from history`,
+        });
       } catch (err) {
         console.error("[BulkVideoGeneration] Failed to clear database:", err);
       }
