@@ -3390,7 +3390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       while (hasMore) {
         console.log(`[ElevenLabs Sync] Fetching page ${page + 1}...`);
         
-        const response = await fetch(`https://api.elevenlabs.io/v1/shared-voices?page_size=${pageSize}&page=${page}`, {
+        const response = await fetch(`https://api.elevenlabs.io/v1/voice-library/shared-voices?page_size=${pageSize}&page=${page}`, {
           headers: {
             'xi-api-key': apiKey,
           },
