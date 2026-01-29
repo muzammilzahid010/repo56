@@ -9189,12 +9189,9 @@ Only respond with the JSON array, no additional text.`;
             console.error(`[Character Video] Step 1 failed (attempt ${uploadAttempt}):`, errorText);
             lastUploadError = errorText;
             
-            // Check for celebrity/prominent person error - don't retry, show user-friendly message
+            // Check for celebrity/prominent person error - save for user-friendly message after all retries
             if (errorText.includes('PROMINENT_PEOPLE') || errorText.includes('prominent')) {
-              console.log('[Character Video] Image contains celebrity/prominent person - cannot use');
-              sendEvent('error', { error: "Celebrity ya famous person ki image use nahi kar sakte. Kripya apni khud ki character image use karein." });
-              res.end();
-              return;
+              lastUploadError = 'CELEBRITY_ERROR';
             }
             
             // Wait before retry (exponential backoff: 1s, 2s, 4s, 8s)
@@ -9228,7 +9225,11 @@ Only respond with the JSON array, no additional text.`;
 
       if (!characterMediaId) {
         console.error(`[Character Video] Step 1 failed after ${MAX_UPLOAD_RETRIES} attempts. Last error: ${lastUploadError}`);
-        sendEvent('error', { error: `Failed to upload character image after ${MAX_UPLOAD_RETRIES} attempts. Please try again or use a different image.` });
+        // Show user-friendly message for celebrity error
+        const errorMessage = lastUploadError === 'CELEBRITY_ERROR' 
+          ? "Celebrity ya famous person ki image use nahi kar sakte. Kripya apni khud ki character image use karein."
+          : `Failed to upload character image after ${MAX_UPLOAD_RETRIES} attempts. Please try again or use a different image.`;
+        sendEvent('error', { error: errorMessage });
         res.end();
         return;
       }
