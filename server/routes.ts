@@ -2424,6 +2424,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear ALL video history for ALL users (admin only) - DANGEROUS
+  app.post("/api/admin/clear-all-video-history", requireAdmin, async (req, res) => {
+    try {
+      console.log("[Admin] Clearing ALL video history for ALL users - DANGER!");
+      await storage.clearAllVideoHistory();
+      
+      // Also reset daily counts
+      const resetCount = await storage.forceResetAllDailyCounts();
+      
+      console.log("[Admin] All video history cleared and daily counts reset");
+      
+      res.json({ 
+        success: true,
+        message: `Cleared all video history and reset daily counts for ${resetCount} users`
+      });
+    } catch (error) {
+      console.error("Error in POST /api/admin/clear-all-video-history:", error);
+      res.status(500).json({ error: "Failed to clear video history" });
+    }
+  });
+
   // Send warning to user (admin only)
   app.post("/api/admin/send-warning/:userId", requireAdmin, async (req, res) => {
     try {

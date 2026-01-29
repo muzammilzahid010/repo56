@@ -720,6 +720,29 @@ export default function Admin() {
     },
   });
 
+  const clearAllHistoryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/clear-all-video-history", {});
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "All history cleared",
+        description: data.message || "All video history has been deleted",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/video-history"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to clear history",
+        description: error.message || "An error occurred",
+      });
+    },
+  });
+
   const resetVideoCountMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await apiRequest("POST", `/api/users/${userId}/reset-video-count`, {});
@@ -2120,6 +2143,21 @@ export default function Admin() {
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   {resetAllDailyCountsMutation.isPending ? "Resetting..." : "Reset All Daily"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm("WARNING: This will DELETE all video history for ALL users! Are you sure?")) {
+                      clearAllHistoryMutation.mutate();
+                    }
+                  }}
+                  disabled={clearAllHistoryMutation.isPending}
+                  data-testid="button-clear-all-history"
+                  className="border-red-400 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {clearAllHistoryMutation.isPending ? "Clearing..." : "Clear All History"}
                 </Button>
                 <Button
                   variant="outline"
