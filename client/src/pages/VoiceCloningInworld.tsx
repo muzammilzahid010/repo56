@@ -744,14 +744,7 @@ export default function VoiceCloningInworld() {
                 <Textarea
                   placeholder="Enter your text here... You can use emotional markers like [happy], [sad], [whisper] for expressive speech."
                   value={text}
-                  onChange={(e) => {
-                    const newText = e.target.value;
-                    if (newText.length <= 50000) {
-                      setText(newText);
-                    } else {
-                      setText(newText.slice(0, 50000));
-                    }
-                  }}
+                  onChange={(e) => setText(e.target.value)}
                   className="min-h-[200px] resize-none"
                   data-testid="input-text"
                 />
@@ -762,7 +755,14 @@ export default function VoiceCloningInworld() {
                   </span>
                   <span className="text-muted-foreground">{wordCount} words</span>
                 </div>
-                {characterCount > 2000 && (
+                {characterCount > 50000 && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                      Text exceeds 50,000 character limit. Please reduce text to generate audio.
+                    </p>
+                  </div>
+                )}
+                {characterCount > 2000 && characterCount <= 50000 && (
                   <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p className="text-sm text-amber-600 dark:text-amber-400">
                       Long text detected - will be generated in {Math.ceil(characterCount / 1800)} chunks and combined automatically.
@@ -902,7 +902,7 @@ export default function VoiceCloningInworld() {
                   className="w-full"
                   size="lg"
                   onClick={() => generateMutation.mutate()}
-                  disabled={!text.trim() || generateMutation.isPending}
+                  disabled={!text.trim() || generateMutation.isPending || text.length > 50000}
                   data-testid="button-generate"
                 >
                   {generateMutation.isPending ? (
