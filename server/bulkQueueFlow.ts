@@ -537,9 +537,9 @@ const STUCK_QUEUE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 const HEALTH_CHECK_INTERVAL_MS = 30 * 1000; // Run health check every 30 seconds
 
 // ==================== WORKER LIMITS CONFIG ====================
-// Global: unlimited (very high), Per-user: 20 concurrent max
+// Global: unlimited (very high), Per-user: unlimited (1000 concurrent max)
 const GLOBAL_MAX_CONCURRENT_WORKERS = parseInt(process.env.GLOBAL_MAX_WORKERS || '10000', 10);
-const MAX_CONCURRENT_PER_USER = parseInt(process.env.PER_USER_MAX_WORKERS || '20', 10);
+const MAX_CONCURRENT_PER_USER = parseInt(process.env.PER_USER_MAX_WORKERS || '1000', 10);
 const MAX_UPLOADS_PER_USER = parseInt(process.env.PER_USER_MAX_UPLOADS || '100', 10);
 const MAX_PROCESSING_TIME_MS = 2 * 60 * 60 * 1000;
 
