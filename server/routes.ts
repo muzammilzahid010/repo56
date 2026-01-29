@@ -3371,7 +3371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin - Sync voices from ElevenLabs API to database
   app.post("/api/admin/elevenlabs-voices/sync", requireAdmin, async (req, res) => {
     try {
-      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs API...');
+      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs Shared Library...');
       
       // Get API key from settings
       const settings = await storage.getAppSettings();
@@ -3381,33 +3381,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: 'ElevenLabs API key not configured. Add it in Admin > Settings.' });
       }
       
-      // Fetch from ElevenLabs official API
-      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: {
-          'xi-api-key': apiKey,
-        },
-      });
+      let allVoices: any[] = [];
+      let page = 0;
+      const pageSize = 100;
+      let hasMore = true;
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[ElevenLabs Sync] API error:', errorText);
-        return res.status(response.status).json({ success: false, error: 'ElevenLabs API error: ' + errorText });
+      // Fetch all pages from shared voices library
+      while (hasMore) {
+        console.log(`[ElevenLabs Sync] Fetching page ${page + 1}...`);
+        
+        const response = await fetch(`https://api.elevenlabs.io/v1/shared-voices?page_size=${pageSize}&page=${page}`, {
+          headers: {
+            'xi-api-key': apiKey,
+          },
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[ElevenLabs Sync] API error:', errorText);
+          return res.status(response.status).json({ success: false, error: 'ElevenLabs API error: ' + errorText });
+        }
+        
+        const json = await response.json();
+        
+        if (!json.voices || json.voices.length === 0) {
+          hasMore = false;
+        } else {
+          allVoices = allVoices.concat(json.voices);
+          console.log(`[ElevenLabs Sync] Page ${page + 1}: ${json.voices.length} voices (total: ${allVoices.length})`);
+          
+          // Check if there are more pages
+          if (json.voices.length < pageSize || !json.has_more) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+        
+        // Add a small delay to avoid rate limiting
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
       
-      const json = await response.json();
-      
-      if (!json.voices) {
-        return res.status(500).json({ success: false, error: 'Invalid response from ElevenLabs API' });
-      }
-      
-      console.log(`[ElevenLabs Sync] Fetched ${json.voices.length} voices from ElevenLabs API`);
+      console.log(`[ElevenLabs Sync] Fetched total ${allVoices.length} voices from Shared Library`);
       
       // Transform and sync to database
-      const voicesToSync = json.voices.map((v: any) => ({
-        voiceId: v.voice_id,
+      const voicesToSync = allVoices.map((v: any) => ({
+        voiceId: v.voice_id || v.public_owner_id,
         name: v.name,
-        description: v.labels?.description || v.description || null,
+        description: v.description || null,
         previewUrl: v.preview_url || null,
+        gender: v.gender || null,
+        accent: v.accent || null,
+        age: v.age || null,
+        language: v.language || null,
+        useCase: v.use_case || null,
       }));
       
       const result = await storage.syncElevenlabsVoices(voicesToSync);
@@ -3416,7 +3445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
-        message: `Synced ${json.voices.length} voices from ElevenLabs`,
+        message: `Synced ${allVoices.length} voices from ElevenLabs Shared Library`,
         added: result.added,
         updated: result.updated,
       });
