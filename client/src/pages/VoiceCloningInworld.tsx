@@ -745,12 +745,13 @@ export default function VoiceCloningInworld() {
                   placeholder="Enter your text here... You can use emotional markers like [happy], [sad], [whisper] for expressive speech."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
+                  maxLength={50000}
                   className="min-h-[200px] resize-none"
                   data-testid="input-text"
                 />
                 <div className="flex justify-between text-sm">
-                  <span className={characterCount > 2000 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
-                    {characterCount} characters
+                  <span className={characterCount > 45000 ? "text-red-600 font-medium" : characterCount > 2000 ? "text-amber-600 font-medium" : "text-muted-foreground"}>
+                    {characterCount.toLocaleString()} / 50,000 characters
                     {characterCount > 2000 && ` (${Math.ceil(characterCount / 1800)} chunks)`}
                   </span>
                   <span className="text-muted-foreground">{wordCount} words</span>
