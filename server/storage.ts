@@ -648,15 +648,21 @@ export class DatabaseStorage implements IStorage {
     const nowPk = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Karachi' });
     const todayPk = nowPk.split(',')[0]; // YYYY-MM-DD format in Pakistan time
     
+    console.log(`[Daily Reset] Running daily count reset for date: ${todayPk}`);
+    
     // Reset all users whose dailyResetDate is before today (Pakistan time)
-    // This query is more efficient than fetching all users
-    await db
+    // Handle both ISO format (2026-01-29T...) and simple date format (2026-01-29)
+    // Using substring to get just the date part for comparison
+    const result = await db
       .update(users)
       .set({
         dailyVideoCount: 0,
         dailyResetDate: todayPk,
       })
-      .where(sql`daily_reset_date < ${todayPk} OR daily_reset_date IS NULL`);
+      .where(sql`SUBSTRING(daily_reset_date, 1, 10) < ${todayPk} OR daily_reset_date IS NULL`)
+      .returning({ id: users.id, username: users.username });
+    
+    console.log(`[Daily Reset] Reset daily video count for ${result.length} users`);
   }
 
   // Voice character tracking methods

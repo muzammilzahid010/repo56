@@ -698,6 +698,28 @@ export default function Admin() {
     },
   });
 
+  const resetAllDailyCountsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/reset-all-daily-counts", {});
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Daily counts reset",
+        description: data.message || "All users' daily video counts have been reset",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to reset daily counts",
+        description: error.message || "An error occurred",
+      });
+    },
+  });
+
   const resetVideoCountMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await apiRequest("POST", `/api/users/${userId}/reset-video-count`, {});
@@ -2087,6 +2109,17 @@ export default function Admin() {
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   {extendAllExpiryMutation.isPending ? "Extending..." : "+1 Day All Users"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => resetAllDailyCountsMutation.mutate()}
+                  disabled={resetAllDailyCountsMutation.isPending}
+                  data-testid="button-reset-all-daily"
+                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {resetAllDailyCountsMutation.isPending ? "Resetting..." : "Reset All Daily"}
                 </Button>
                 <Button
                   variant="outline"
