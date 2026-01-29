@@ -901,7 +901,12 @@ export default function VoiceCloningInworld() {
                 <CardTitle>Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p><strong>Emotional Markers:</strong> Use [happy], [sad], [whisper], [cough], [sigh] in your text for expressive speech.</p>
+                <div>
+                  <p className="font-semibold text-foreground mb-2">Emotional Markers (prefix):</p>
+                  <p className="mb-2">[happy], [sad], [angry], [surprised], [fearful], [disgusted], [laughing], [whispering]</p>
+                  <p className="font-semibold text-foreground mb-2 mt-3">Non-verbal Sounds (inline):</p>
+                  <p>[breathe], [clear_throat], [cough], [laugh], [sigh], [yawn]</p>
+                </div>
                 <p><strong>Speed:</strong> 0.5x is slower, 1.5x is faster. 1.0x is normal speed.</p>
                 <p><strong>Temperature:</strong> Higher values = more expressive/random. Lower = more consistent.</p>
                               </CardContent>
