@@ -248,20 +248,34 @@ export default function VoiceCloningInworld() {
       
       const data = await response.json() as GenerateResponse;
       
-      // If 404 error (voice not found) and we have original ElevenLabs voice, re-clone and retry
-      if (data.error && data.error.includes("Not Found") && originalElVoice) {
-        console.log("[Voice AI] Voice not found, re-cloning:", originalElVoice.name);
-        const newVoiceId = await cloneVoice(originalElVoice);
-        
-        // Retry generation with new voice
-        const retryResponse = await apiRequest("POST", "/api/voice-ai/generate", {
-          text,
-          voice: newVoiceId,
-          language,
-          speed: speed[0],
-          temperature: temperature[0],
-        });
-        return retryResponse.json() as Promise<GenerateResponse>;
+      // If 404 error (voice not found)
+      if (data.error && data.error.includes("Not Found")) {
+        // If we have original ElevenLabs voice, re-clone and retry
+        if (originalElVoice) {
+          console.log("[Voice AI] Voice not found, re-cloning:", originalElVoice.name);
+          const newVoiceId = await cloneVoice(originalElVoice);
+          
+          // Retry generation with new voice
+          const retryResponse = await apiRequest("POST", "/api/voice-ai/generate", {
+            text,
+            voice: newVoiceId,
+            language,
+            speed: speed[0],
+            temperature: temperature[0],
+          });
+          return retryResponse.json() as Promise<GenerateResponse>;
+        } else {
+          // Clear all cloned voices from localStorage as they're now invalid
+          console.log("[Voice AI] Voice not found, clearing cached cloned voices");
+          setClonedVoices([]);
+          localStorage.removeItem("clonedVoices");
+          
+          // Return user-friendly error
+          return {
+            success: false,
+            error: "Voice configuration changed. Please select a voice from the ElevenLabs section and try again."
+          } as GenerateResponse;
+        }
       }
       
       return data;
