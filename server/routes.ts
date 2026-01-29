@@ -3405,55 +3405,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const html = await response.text();
         const pageVoices: any[] = [];
         
-        // Extract voice IDs from links like /ai-voices/elevenlabs/voices/VOICE_ID/
-        const voiceIdRegex = /\/ai-voices\/elevenlabs\/voices\/([a-zA-Z0-9]{10,30})\//g;
-        const matches = [...html.matchAll(voiceIdRegex)];
-        const uniqueIds = [...new Set(matches.map(m => m[1]))];
+        // Split by voice cards - each card starts with "w-64 bg-white rounded-lg"
+        const cardPattern = /<div class="w-64 bg-white rounded-lg[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
+        const cards = [...html.matchAll(cardPattern)];
         
-        // For each voice ID, try to extract name and description from surrounding context
-        for (const voiceId of uniqueIds) {
-          // Find the voice card containing this ID
-          const idPos = html.indexOf(`/voices/${voiceId}/`);
-          if (idPos === -1) continue;
+        for (const cardMatch of cards) {
+          const cardHtml = cardMatch[0];
           
-          // Get surrounding context (voice card is usually within 1000 chars before)
-          const startPos = Math.max(0, idPos - 1000);
-          const context = html.substring(startPos, idPos + 100);
+          // Extract voice ID from copyToClipboard or data-voice
+          const idMatch = cardHtml.match(/copyToClipboard\('([a-zA-Z0-9]{10,30})'/) ||
+                          cardHtml.match(/data-voice="([a-zA-Z0-9]{10,30})"/) ||
+                          cardHtml.match(/\/voices\/([a-zA-Z0-9]{10,30})\//);
+          if (!idMatch) continue;
+          const voiceId = idMatch[1];
           
-          // Extract name - usually in a heading or strong tag before the ID
+          // Extract name from semibold heading
           let name = voiceId;
-          const namePatterns = [
-            /<h[2-4][^>]*>([^<]{2,80})<\/h[2-4]>/g,
-            /<strong>([^<]{2,80})<\/strong>/g,
-            /<b>([^<]{2,80})<\/b>/g,
-          ];
-          
-          for (const pattern of namePatterns) {
-            const nameMatches = [...context.matchAll(pattern)];
-            if (nameMatches.length > 0) {
-              // Get the last match (closest to the voice ID)
-              const lastMatch = nameMatches[nameMatches.length - 1];
-              const extractedName = lastMatch[1].trim();
-              if (extractedName.length > 1 && extractedName.length < 80 && !extractedName.includes('<')) {
-                name = extractedName;
-                break;
-              }
-            }
+          const nameMatch = cardHtml.match(/text-lg font-semibold text-gray-900">\s*([^<]+)\s*<\/div>/);
+          if (nameMatch && nameMatch[1].trim()) {
+            name = nameMatch[1].trim();
           }
           
-          // Extract description - usually a paragraph or span with descriptive text
+          // Extract description
           let description = null;
-          const descPattern = /<p[^>]*>([^<]{15,300})<\/p>/g;
-          const descMatches = [...context.matchAll(descPattern)];
-          if (descMatches.length > 0) {
-            description = descMatches[descMatches.length - 1][1].trim();
+          const descMatch = cardHtml.match(/mt-3 font-sans text-xs text-gray-500">([^<]+)<\/div>/);
+          if (descMatch && descMatch[1].trim()) {
+            description = descMatch[1].trim();
+          }
+          
+          // Extract preview URL if available
+          let previewUrl = null;
+          const previewMatch = cardHtml.match(/toggleVoice\('[^']+',\s*'([^']+)'/);
+          if (previewMatch) {
+            previewUrl = previewMatch[1];
           }
           
           pageVoices.push({
             voiceId,
             name: name.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"'),
             description: description ? description.replace(/&amp;/g, '&').replace(/&#39;/g, "'") : null,
+            previewUrl,
           });
+        }
+        
+        // Fallback: If card pattern didn't work, try extracting voice IDs directly
+        if (pageVoices.length === 0) {
+          const voiceIdRegex = /copyToClipboard\('([a-zA-Z0-9]{10,30})'/g;
+          const matches = [...html.matchAll(voiceIdRegex)];
+          const uniqueIds = [...new Set(matches.map(m => m[1]))];
+          
+          for (const voiceId of uniqueIds) {
+            pageVoices.push({
+              voiceId,
+              name: voiceId,
+              description: null,
+              previewUrl: null,
+            });
+          }
         }
         
         if (pageVoices.length === 0) {
@@ -3494,7 +3502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         voiceId: v.voiceId,
         name: v.name || v.voiceId,
         description: v.description || null,
-        previewUrl: null,
+        previewUrl: v.previewUrl || null,
       }));
       
       const result = await storage.syncElevenlabsVoices(voicesToSync);
