@@ -451,7 +451,7 @@ export default function VoiceCloningInworld() {
             <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold">Voice Cloning V2</h1>
+            <h1 className="text-3xl font-bold">ElevenLab TTS</h1>
           </div>
           <p className="text-muted-foreground">
             Ultra-realistic text-to-speech with AI. Clone your voice or use preset voices.
