@@ -819,19 +819,6 @@ export default function VoiceCloningInworld() {
                                 {v.name}
                               </SelectItem>
                             ))}
-                            <div className="my-1 border-t" />
-                          </>
-                        )}
-                        {libraryVoices.length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
-                              Voice Library ({libraryVoices.length})
-                            </div>
-                            {libraryVoices.map((v) => (
-                              <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
-                                {v.name}
-                              </SelectItem>
-                            ))}
                           </>
                         )}
                         <div className="my-1 border-t" />
