@@ -22,6 +22,8 @@ import { Film, Sparkles, Download, Zap, CheckCircle, AlertCircle, Loader2, Play,
 import Collapse from '@mui/material/Collapse';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import Backdrop from '@mui/material/Backdrop';
@@ -62,6 +64,7 @@ export default function BulkVideoGeneration() {
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [inputMode, setInputMode] = useState<'text' | 'json'>('text');
   const [jsonBlocks, setJsonBlocks] = useState<JsonBlock[]>([{ id: generateBlockId(), value: '', isExpanded: true }]);
+  const [clearPrevious, setClearPrevious] = useState(true);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -354,7 +357,13 @@ export default function BulkVideoGeneration() {
     }
 
     setIsGenerating(true);
-    setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
+    
+    // Clear previous results if checkbox is enabled, otherwise append
+    if (clearPrevious) {
+      setResults(promptList.map(prompt => ({ prompt, status: 'pending' })));
+    } else {
+      setResults(prev => [...promptList.map(prompt => ({ prompt, status: 'pending' as const })), ...prev]);
+    }
 
     try {
       const response = await fetch("/api/bulk-video-stream", {
@@ -775,6 +784,29 @@ export default function BulkVideoGeneration() {
               )}
             </Box>
           )}
+
+          <FormControlLabel
+            control={
+              <Checkbox 
+                checked={clearPrevious} 
+                onChange={(e) => setClearPrevious(e.target.checked)}
+                sx={{ 
+                  color: '#1a1a2e',
+                  '&.Mui-checked': { color: '#1a1a2e' }
+                }}
+                data-testid="checkbox-clear-previous"
+              />
+            }
+            label={
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Trash2 className="w-4 h-4" style={{ color: '#1a1a2e' }} />
+                <Typography sx={{ color: '#1a1a2e', fontSize: '0.9rem', fontWeight: 500 }}>
+                  Clear previous generation before starting new
+                </Typography>
+              </Stack>
+            }
+            sx={{ mb: 2 }}
+          />
 
           <Button
             variant="contained"
