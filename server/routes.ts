@@ -9189,6 +9189,14 @@ Only respond with the JSON array, no additional text.`;
             console.error(`[Character Video] Step 1 failed (attempt ${uploadAttempt}):`, errorText);
             lastUploadError = errorText;
             
+            // Check for celebrity/prominent person error - don't retry, show user-friendly message
+            if (errorText.includes('PROMINENT_PEOPLE') || errorText.includes('prominent')) {
+              console.log('[Character Video] Image contains celebrity/prominent person - cannot use');
+              sendEvent('error', { error: "Celebrity ya famous person ki image use nahi kar sakte. Kripya apni khud ki character image use karein." });
+              res.end();
+              return;
+            }
+            
             // Wait before retry (exponential backoff: 1s, 2s, 4s, 8s)
             if (uploadAttempt < MAX_UPLOAD_RETRIES) {
               const delay = Math.min(1000 * Math.pow(2, uploadAttempt - 1), 8000);
