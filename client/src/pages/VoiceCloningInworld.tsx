@@ -901,11 +901,17 @@ export default function VoiceCloningInworld() {
                 <CardTitle>Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <div>
-                  <p className="font-semibold text-foreground mb-2">Emotional Markers (prefix):</p>
-                  <p className="mb-2">[happy], [sad], [angry], [surprised], [fearful], [disgusted], [laughing], [whispering]</p>
-                  <p className="font-semibold text-foreground mb-2 mt-3">Non-verbal Sounds (inline):</p>
-                  <p>[breathe], [clear_throat], [cough], [laugh], [sigh], [yawn]</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">Emotions (start mein likhein):</p>
+                    <p className="text-xs mb-1">[happy], [sad], [angry], [surprised], [fearful], [disgusted], [laughing], [whispering]</p>
+                    <p className="text-xs italic">Example: [happy] Hello everyone!</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground mb-1">Sounds (kahin bhi likhein):</p>
+                    <p className="text-xs mb-1">[breathe], [clear_throat], [cough], [laugh], [sigh], [yawn]</p>
+                    <p className="text-xs italic">Example: Well [sigh] let me think about it.</p>
+                  </div>
                 </div>
                 <p><strong>Speed:</strong> 0.5x is slower, 1.5x is faster. 1.0x is normal speed.</p>
                 <p><strong>Temperature:</strong> Higher values = more expressive/random. Lower = more consistent.</p>
