@@ -70,7 +70,6 @@ const menuItems = [
 ];
 
 const playgroundItems = [
-  { id: 'deep-yt-analyze', title: 'Deep YT Search Analyze', icon: Search, path: '/deep-yt-analyze', disabled: false, adminOnly: false, isNew: true },
   { id: 'ugc-videos', title: 'UGC Videos', icon: Users, path: '/ugc-videos', disabled: false, adminOnly: false, isNew: true },
   { id: 'veo3-generator', title: 'VEO3.1 Video Generator', icon: Video, path: '/veo-generator', disabled: false, adminOnly: false },
   { id: 'character-consistency', title: 'Character Consistency', icon: Users, path: '/character-consistent', disabled: false, adminOnly: false, empireOnly: true },
@@ -406,6 +405,7 @@ export default function UserPanelLayout({ children }: UserPanelLayoutProps) {
               Admin Tools
             </Typography>
             <List sx={{ p: 0, mt: 0.5 }}>
+              {renderMenuItem({ id: 'deep-yt-analyze', title: 'Deep YT Search', icon: Search, path: '/deep-yt-analyze' })}
               {renderMenuItem({ id: 'script-to-frames', title: 'Script to Frames', icon: Film, path: '/script-to-frames' })}
             </List>
           </>
