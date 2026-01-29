@@ -1282,10 +1282,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAllVideoHistory(): Promise<number> {
-    // Use TRUNCATE for faster deletion (much faster than DELETE for large tables)
-    const result = await db.execute(sql`TRUNCATE TABLE video_history RESTART IDENTITY CASCADE`);
-    console.log('[Storage] Video history table truncated');
-    return 0; // TRUNCATE doesn't return count
+    // Simple DELETE without returning for faster execution
+    console.log('[Storage] Starting video history deletion...');
+    await db.execute(sql`DELETE FROM video_history`);
+    console.log('[Storage] Video history deleted');
+    return 0;
   }
 
   async deleteVideoHistoryById(videoId: string): Promise<boolean> {
