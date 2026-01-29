@@ -47,6 +47,16 @@ interface ElevenLabsVoice {
   preview_url: string;
 }
 
+// Official 21 ElevenLabs voice names (to separate from library voices)
+const OFFICIAL_ELEVENLABS_VOICES = [
+  "Rachel", "Drew", "Clyde", "Paul", "Domi", "Dave", "Fin", "Bella", 
+  "Antoni", "Thomas", "Charlie", "Emily", "Elli", "Callum", "Patrick", 
+  "Harry", "Liam", "Dorothy", "Josh", "Arnold", "Charlotte", "Matilda",
+  "Matthew", "James", "Joseph", "Jeremy", "Michael", "Ethan", "Chris",
+  "Gigi", "Freya", "Grace", "Daniel", "Lily", "Serena", "Adam", "Nicole",
+  "Bill", "Jessie", "Santa Claus", "George", "Sam"
+];
+
 interface GenerateResponse {
   success: boolean;
   audioUrl?: string;
@@ -155,6 +165,14 @@ export default function VoiceCloningInworld() {
   });
 
   const elevenlabsVoices = elevenlabsData?.voices || [];
+  
+  // Separate official voices from library voices
+  const officialVoices = elevenlabsVoices.filter(v => 
+    OFFICIAL_ELEVENLABS_VOICES.some(name => v.name.toLowerCase() === name.toLowerCase())
+  );
+  const libraryVoices = elevenlabsVoices.filter(v => 
+    !OFFICIAL_ELEVENLABS_VOICES.some(name => v.name.toLowerCase() === name.toLowerCase())
+  );
   
   // Auto-select first voice when language changes and voices are loaded
   useEffect(() => {
@@ -791,12 +809,25 @@ export default function VoiceCloningInworld() {
                             <div className="my-1 border-t" />
                           </>
                         )}
-                        {elevenlabsVoices.length > 0 && (
+                        {officialVoices.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-green-600 sticky top-0 bg-popover z-10">
+                              ElevenLabs Official ({officialVoices.length})
+                            </div>
+                            {officialVoices.map((v) => (
+                              <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-green-600">
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                            <div className="my-1 border-t" />
+                          </>
+                        )}
+                        {libraryVoices.length > 0 && (
                           <>
                             <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
-                              ElevenLabs Library ({elevenlabsVoices.length})
+                              Voice Library ({libraryVoices.length})
                             </div>
-                            {elevenlabsVoices.map((v) => (
+                            {libraryVoices.map((v) => (
                               <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
                                 {v.name}
                               </SelectItem>
