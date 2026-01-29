@@ -3562,8 +3562,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const json = await response.json();
+      // Only get "premade" category voices - these are the official ElevenLabs voices
       const officialVoices = json.voices
-        ?.filter((v: any) => v.preview_url)
+        ?.filter((v: any) => v.preview_url && v.category === 'premade')
         .map((v: any) => ({
           voiceId: v.voice_id,
           name: v.name,
@@ -3573,7 +3574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save to database for next time
       if (officialVoices.length > 0) {
         await storage.syncOfficialVoices(officialVoices);
-        console.log(`[ElevenLabs Official] Saved ${officialVoices.length} voices to database`);
+        console.log(`[ElevenLabs Official] Saved ${officialVoices.length} PREMADE voices to database`);
       }
       
       res.json({ 
@@ -3610,8 +3611,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const json = await response.json();
+      // Only get "premade" category voices - these are the official ElevenLabs voices
       const officialVoices = json.voices
-        ?.filter((v: any) => v.preview_url)
+        ?.filter((v: any) => v.preview_url && v.category === 'premade')
         .map((v: any) => ({
           voiceId: v.voice_id,
           name: v.name,
@@ -3619,7 +3621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })) || [];
       
       const count = await storage.syncOfficialVoices(officialVoices);
-      console.log(`[ElevenLabs Official Sync] Saved ${count} voices`);
+      console.log(`[ElevenLabs Official Sync] Saved ${count} PREMADE voices`);
       
       res.json({ success: true, count, message: `Synced ${count} official voices` });
     } catch (error: any) {
