@@ -9143,50 +9143,84 @@ Only respond with the JSON array, no additional text.`;
       sendEvent('progress', { phase: 'uploading_character', message: 'Uploading character reference...' });
 
       let characterMediaId: string | null = null;
+      const MAX_UPLOAD_RETRIES = 5;
+      let uploadAttempt = 0;
+      let lastUploadError = '';
       
-      try {
-        const uploadResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token.token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            imageInput: {
-              rawImageBytes: characterImageBase64,
-              mimeType: characterImageMimeType,
-              isUserUploaded: true,
-              aspectRatio: aspectRatio
-            },
-            clientContext: {
-              sessionId: sessionId,
-              tool: "ASSET_MANAGER"
-            }
-          }),
-        });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error(`[Character Video] Step 1 failed:`, errorText);
-          sendEvent('error', { error: "Failed to upload character image. Please try again." });
+      // Retry loop for character image upload
+      while (uploadAttempt < MAX_UPLOAD_RETRIES && !characterMediaId) {
+        uploadAttempt++;
+        
+        // Get a fresh token for each retry attempt
+        const retryTokens = await storage.getActiveApiTokens();
+        if (retryTokens.length === 0) {
+          sendEvent('error', { error: "No active API tokens available" });
           res.end();
           return;
         }
+        
+        // Use different token for retries (rotate through available tokens)
+        const uploadToken = retryTokens[(uploadAttempt - 1) % retryTokens.length];
+        console.log(`[Character Video] Step 1: Upload attempt ${uploadAttempt}/${MAX_UPLOAD_RETRIES} with token ${uploadToken.label || uploadToken.id}`);
+        
+        try {
+          const uploadResponse = await fetch("https://aisandbox-pa.googleapis.com/v1:uploadUserImage", {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${uploadToken.token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              imageInput: {
+                rawImageBytes: characterImageBase64,
+                mimeType: characterImageMimeType,
+                isUserUploaded: true,
+                aspectRatio: aspectRatio
+              },
+              clientContext: {
+                sessionId: sessionId,
+                tool: "ASSET_MANAGER"
+              }
+            }),
+          });
 
-        const uploadData = await uploadResponse.json();
-        characterMediaId = uploadData.mediaGenerationId?.mediaGenerationId || uploadData.mediaGenerationId;
-        console.log(`[Character Video] Step 1 success: mediaGenerationId = ${characterMediaId?.substring(0, 30)}...`);
-        sendEvent('progress', { phase: 'character_uploaded', message: 'Character reference uploaded!' });
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            console.error(`[Character Video] Step 1 failed (attempt ${uploadAttempt}):`, errorText);
+            lastUploadError = errorText;
+            
+            // Wait before retry (exponential backoff: 1s, 2s, 4s, 8s)
+            if (uploadAttempt < MAX_UPLOAD_RETRIES) {
+              const delay = Math.min(1000 * Math.pow(2, uploadAttempt - 1), 8000);
+              console.log(`[Character Video] Retrying upload in ${delay}ms...`);
+              sendEvent('progress', { phase: 'uploading_character', message: `Retrying upload (${uploadAttempt}/${MAX_UPLOAD_RETRIES})...` });
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            continue;
+          }
 
-      } catch (uploadError: any) {
-        console.error(`[Character Video] Step 1 error:`, uploadError);
-        sendEvent('error', { error: "Failed to upload character: " + uploadError.message });
-        res.end();
-        return;
+          const uploadData = await uploadResponse.json();
+          characterMediaId = uploadData.mediaGenerationId?.mediaGenerationId || uploadData.mediaGenerationId;
+          console.log(`[Character Video] Step 1 success: mediaGenerationId = ${characterMediaId?.substring(0, 30)}...`);
+          sendEvent('progress', { phase: 'character_uploaded', message: 'Character reference uploaded!' });
+
+        } catch (uploadError: any) {
+          console.error(`[Character Video] Step 1 error (attempt ${uploadAttempt}):`, uploadError);
+          lastUploadError = uploadError.message;
+          
+          // Wait before retry
+          if (uploadAttempt < MAX_UPLOAD_RETRIES) {
+            const delay = Math.min(1000 * Math.pow(2, uploadAttempt - 1), 8000);
+            console.log(`[Character Video] Retrying upload in ${delay}ms...`);
+            sendEvent('progress', { phase: 'uploading_character', message: `Retrying upload (${uploadAttempt}/${MAX_UPLOAD_RETRIES})...` });
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
 
       if (!characterMediaId) {
-        sendEvent('error', { error: "No character media ID received" });
+        console.error(`[Character Video] Step 1 failed after ${MAX_UPLOAD_RETRIES} attempts. Last error: ${lastUploadError}`);
+        sendEvent('error', { error: `Failed to upload character image after ${MAX_UPLOAD_RETRIES} attempts. Please try again or use a different image.` });
         res.end();
         return;
       }
