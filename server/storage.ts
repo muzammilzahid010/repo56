@@ -1282,11 +1282,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAllVideoHistory(): Promise<number> {
-    // Simple DELETE without returning for faster execution
-    console.log('[Storage] Starting video history deletion...');
-    await db.execute(sql`DELETE FROM video_history`);
-    console.log('[Storage] Video history deleted');
-    return 0;
+    // Batch delete for better performance with large datasets
+    console.log('[Storage] Starting batch video history deletion...');
+    const batchSize = 10000;
+    let totalDeleted = 0;
+    let deletedInBatch = 0;
+    
+    do {
+      // Delete in batches using subquery to get IDs
+      const result = await db.execute(sql`
+        DELETE FROM video_history 
+        WHERE id IN (
+          SELECT id FROM video_history LIMIT ${batchSize}
+        )
+      `);
+      deletedInBatch = Number(result.rowCount) || 0;
+      totalDeleted += deletedInBatch;
+      
+      if (deletedInBatch > 0) {
+        console.log(`[Storage] Deleted batch: ${deletedInBatch} records (total: ${totalDeleted})`);
+      }
+    } while (deletedInBatch >= batchSize);
+    
+    console.log(`[Storage] Video history deletion complete. Total deleted: ${totalDeleted}`);
+    return totalDeleted;
   }
 
   async deleteVideoHistoryById(videoId: string): Promise<boolean> {
