@@ -3371,81 +3371,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin - Sync voices from ElevenLabs API to database
   app.post("/api/admin/elevenlabs-voices/sync", requireAdmin, async (req, res) => {
     try {
-      console.log('[ElevenLabs Sync] Starting sync from ElevenLabs V2 API...');
-      
-      // Get API key from settings
-      const settings = await storage.getAppSettings();
-      const apiKey = settings?.elevenlabsApiKey;
-      
-      if (!apiKey) {
-        return res.status(400).json({ success: false, error: 'ElevenLabs API key not configured. Add it in Admin > Settings.' });
-      }
+      console.log('[ElevenLabs Sync] Starting sync from JSON2Video...');
       
       let allVoices: any[] = [];
-      let nextPageToken: string | null = null;
-      let pageNum = 0;
-      const pageSize = 100;
+      let page = 1;
+      let consecutiveEmptyPages = 0;
       
-      // Fetch all pages using V2 API with community voices
-      while (true) {
-        pageNum++;
-        console.log(`[ElevenLabs Sync] Fetching page ${pageNum}...`);
+      // Fetch all pages from JSON2Video website
+      while (consecutiveEmptyPages < 3) {
+        console.log(`[ElevenLabs Sync] Fetching page ${page}...`);
         
-        let url = `https://api.elevenlabs.io/v2/voices?page_size=${pageSize}&type=community`;
-        if (nextPageToken) {
-          url += `&next_page_token=${encodeURIComponent(nextPageToken)}`;
-        }
+        const url = page === 1 
+          ? 'https://json2video.com/ai-voices/elevenlabs/'
+          : `https://json2video.com/ai-voices/elevenlabs/page/${page}/`;
         
         const response = await fetch(url, {
           headers: {
-            'xi-api-key': apiKey,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
         });
         
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[ElevenLabs Sync] API error:', errorText);
-          return res.status(response.status).json({ success: false, error: 'ElevenLabs API error: ' + errorText });
-        }
-        
-        const json = await response.json();
-        
-        if (!json.voices || json.voices.length === 0) {
+          if (response.status === 404) {
+            consecutiveEmptyPages++;
+            page++;
+            continue;
+          }
+          console.error('[ElevenLabs Sync] Fetch error:', response.status);
           break;
         }
         
-        allVoices = allVoices.concat(json.voices);
-        console.log(`[ElevenLabs Sync] Page ${pageNum}: ${json.voices.length} voices (total: ${allVoices.length})`);
+        const html = await response.text();
+        const pageVoices: any[] = [];
         
-        // Check if there are more pages
-        if (!json.has_more || !json.next_page_token) {
+        // Extract voice IDs from links like /ai-voices/elevenlabs/voices/VOICE_ID/
+        const voiceIdRegex = /\/ai-voices\/elevenlabs\/voices\/([a-zA-Z0-9]{10,30})\//g;
+        const matches = [...html.matchAll(voiceIdRegex)];
+        const uniqueIds = [...new Set(matches.map(m => m[1]))];
+        
+        // For each voice ID, try to extract name and description from surrounding context
+        for (const voiceId of uniqueIds) {
+          // Find the voice card containing this ID
+          const idPos = html.indexOf(`/voices/${voiceId}/`);
+          if (idPos === -1) continue;
+          
+          // Get surrounding context (voice card is usually within 1000 chars before)
+          const startPos = Math.max(0, idPos - 1000);
+          const context = html.substring(startPos, idPos + 100);
+          
+          // Extract name - usually in a heading or strong tag before the ID
+          let name = voiceId;
+          const namePatterns = [
+            /<h[2-4][^>]*>([^<]{2,80})<\/h[2-4]>/g,
+            /<strong>([^<]{2,80})<\/strong>/g,
+            /<b>([^<]{2,80})<\/b>/g,
+          ];
+          
+          for (const pattern of namePatterns) {
+            const nameMatches = [...context.matchAll(pattern)];
+            if (nameMatches.length > 0) {
+              // Get the last match (closest to the voice ID)
+              const lastMatch = nameMatches[nameMatches.length - 1];
+              const extractedName = lastMatch[1].trim();
+              if (extractedName.length > 1 && extractedName.length < 80 && !extractedName.includes('<')) {
+                name = extractedName;
+                break;
+              }
+            }
+          }
+          
+          // Extract description - usually a paragraph or span with descriptive text
+          let description = null;
+          const descPattern = /<p[^>]*>([^<]{15,300})<\/p>/g;
+          const descMatches = [...context.matchAll(descPattern)];
+          if (descMatches.length > 0) {
+            description = descMatches[descMatches.length - 1][1].trim();
+          }
+          
+          pageVoices.push({
+            voiceId,
+            name: name.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"'),
+            description: description ? description.replace(/&amp;/g, '&').replace(/&#39;/g, "'") : null,
+          });
+        }
+        
+        if (pageVoices.length === 0) {
+          consecutiveEmptyPages++;
+        } else {
+          consecutiveEmptyPages = 0;
+          allVoices = allVoices.concat(pageVoices);
+          console.log(`[ElevenLabs Sync] Page ${page}: ${pageVoices.length} voices (total: ${allVoices.length})`);
+        }
+        
+        page++;
+        
+        // Safety limit - JSON2Video has ~4843 voices, ~50 per page = ~97 pages
+        if (page > 150) {
+          console.log('[ElevenLabs Sync] Reached max pages limit');
           break;
         }
         
-        nextPageToken = json.next_page_token;
-        
-        // Add a small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Safety limit
-        if (pageNum > 100) {
-          console.log('[ElevenLabs Sync] Reached page limit');
-          break;
-        }
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      console.log(`[ElevenLabs Sync] Fetched total ${allVoices.length} voices from ElevenLabs V2 API`);
+      console.log(`[ElevenLabs Sync] Fetched total ${allVoices.length} unique voices from JSON2Video`);
       
-      if (allVoices.length === 0) {
-        return res.status(400).json({ success: false, error: 'No voices found. Check your API key.' });
+      // Remove duplicates by voiceId
+      const uniqueVoices = Array.from(
+        new Map(allVoices.map(v => [v.voiceId, v])).values()
+      );
+      
+      console.log(`[ElevenLabs Sync] After deduplication: ${uniqueVoices.length} voices`);
+      
+      if (uniqueVoices.length === 0) {
+        return res.status(400).json({ success: false, error: 'No voices found. Website may be blocking requests.' });
       }
       
       // Transform and sync to database
-      const voicesToSync = allVoices.map((v: any) => ({
-        voiceId: v.voice_id,
-        name: v.name,
+      const voicesToSync = uniqueVoices.map((v: any) => ({
+        voiceId: v.voiceId,
+        name: v.name || v.voiceId,
         description: v.description || null,
-        previewUrl: v.preview_url || null,
+        previewUrl: null,
       }));
       
       const result = await storage.syncElevenlabsVoices(voicesToSync);
@@ -3454,7 +3503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
-        message: `Synced ${allVoices.length} voices from ElevenLabs`,
+        message: `Synced ${uniqueVoices.length} voices from JSON2Video`,
         added: result.added,
         updated: result.updated,
       });
