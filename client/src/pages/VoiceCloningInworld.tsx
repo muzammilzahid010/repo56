@@ -794,7 +794,7 @@ export default function VoiceCloningInworld() {
                         {elevenlabsVoices.length > 0 && (
                           <>
                             <div className="px-2 py-1.5 text-xs font-semibold text-orange-600 sticky top-0 bg-popover z-10">
-                              ElevenLabs Official ({elevenlabsVoices.length})
+                              ElevenLabs Library ({elevenlabsVoices.length})
                             </div>
                             {elevenlabsVoices.map((v) => (
                               <SelectItem key={`el-${v.voice_id}`} value={`elevenlabs:${v.voice_id}`} className="text-orange-600">
