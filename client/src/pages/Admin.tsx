@@ -2111,28 +2111,70 @@ export default function Admin() {
                     )}
                   </DialogContent>
                 </Dialog>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => extendAllExpiryMutation.mutate(-1)}
-                  disabled={extendAllExpiryMutation.isPending}
-                  data-testid="button-reduce-all-expiry"
-                  className="border-[#e5e7eb] text-[#374151]"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {extendAllExpiryMutation.isPending ? "Reducing..." : "-1 Day All Users"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => extendAllExpiryMutation.mutate(1)}
-                  disabled={extendAllExpiryMutation.isPending}
-                  data-testid="button-extend-all-expiry"
-                  className="border-[#e5e7eb] text-[#374151]"
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {extendAllExpiryMutation.isPending ? "Extending..." : "+1 Day All Users"}
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={extendAllExpiryMutation.isPending}
+                      data-testid="button-reduce-all-expiry"
+                      className="border-[#e5e7eb] text-[#374151]"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {extendAllExpiryMutation.isPending ? "Reducing..." : "-1 Day All Users"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-white border-[#e5e7eb]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-[#1f2937]">Decrease All Expiry by 1 Day?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-[#6b7280]">
+                        This will reduce the plan expiry date by 1 day for ALL users. Are you sure you want to continue?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-gray-50 text-[#374151]">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => extendAllExpiryMutation.mutate(-1)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        data-testid="button-confirm-reduce-expiry"
+                      >
+                        Yes, Decrease All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={extendAllExpiryMutation.isPending}
+                      data-testid="button-extend-all-expiry"
+                      className="border-[#e5e7eb] text-[#374151]"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      {extendAllExpiryMutation.isPending ? "Extending..." : "+1 Day All Users"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-white border-[#e5e7eb]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-[#1f2937]">Increase All Expiry by 1 Day?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-[#6b7280]">
+                        This will extend the plan expiry date by 1 day for ALL users. Are you sure you want to continue?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-gray-50 text-[#374151]">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => extendAllExpiryMutation.mutate(1)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        data-testid="button-confirm-extend-expiry"
+                      >
+                        Yes, Increase All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Button
                   variant="outline"
                   size="sm"
